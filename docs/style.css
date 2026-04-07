@@ -1,0 +1,181 @@
+/**
+ * 💎 ORIEN | FRONTEND CONTROL SYSTEM [MULTIMODAL SYNC] — DESIGN SYSTEM
+ * SOTA HUD Aesthetics: Glassmorphism, Dynamic Glow, Tactical Layout.
+ */
+
+:root {
+    --bg-void: #020205;
+    --primary: #00d4ff;
+    --primary-glow: rgba(0, 212, 255, 0.4);
+    --secondary: #a855f7;
+    --secondary-glow: rgba(168, 85, 247, 0.4);
+    --accent: #10b981;
+    --alert: #ef4444;
+    --alert-glow: rgba(239, 68, 68, 0.4);
+    --panel-bg: rgba(10, 10, 25, 0.7);
+    --panel-border: rgba(255, 255, 255, 0.08);
+    --font-main: 'Outfit', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --safe-area: 30px;
+    --panel-radius: 12px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body, html {
+    width: 100%; height: 100%;
+    background: var(--bg-void);
+    color: #e0e0ff;
+    font-family: var(--font-main);
+    overflow: hidden;
+    user-select: none;
+}
+
+/* 🌀 BACKGROUND LAYER */
+#neural-canvas {
+    position: fixed; inset: 0; z-index: -2;
+    background: radial-gradient(circle at center, #0a0a25 0%, #020205 100%);
+}
+
+#neural-aura {
+    position: fixed; inset: 0; z-index: -1;
+    opacity: 0; transition: opacity 2s ease;
+    box-shadow: inset 0 0 150px rgba(0, 212, 255, 0.2);
+}
+#neural-aura.active { opacity: 1; }
+
+.neural-grid {
+    position: fixed; inset: 0; z-index: -1;
+    background-image: 
+        linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+    background-size: 80px 80px;
+    transform: perspective(1000px) rotateX(45deg) translateY(-200px);
+    mask-image: radial-gradient(ellipse at center, black 20%, transparent 80%);
+}
+
+/* 💎 HUD CONTAINER */
+.hud-layout {
+    position: relative;
+    width: 100vw; height: 100vh;
+    display: grid;
+    grid-template-areas: 
+        "header header header"
+        "left center right"
+        "footer footer footer";
+    grid-template-columns: 350px 1fr 400px;
+    grid-template-rows: 80px 1fr 60px;
+    padding: var(--safe-area);
+    gap: 30px;
+}
+
+/* 🛰️ STATUS HEADER */
+.hud-header {
+    grid-area: header;
+    display: flex; justify-content: space-between; align-items: center;
+}
+
+.status-cluster { display: flex; gap: 30px; align-items: center; }
+
+.status-node {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 1px; color: #94a3b8;
+}
+
+.control-node {
+    cursor: pointer; background: rgba(255, 255, 255, 0.03);
+    padding: 10px 20px; border-radius: 20px; border: 1px solid var(--panel-border);
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--primary);
+    transition: all 0.3s ease;
+}
+.control-node:hover { background: var(--primary-glow); border-color: var(--primary); }
+.control-node.active { background: var(--primary); color: #000; box-shadow: 0 0 20px var(--primary-glow); }
+
+/* 🖼️ PANELS */
+.panel {
+    background: var(--panel-bg);
+    backdrop-filter: blur(25px);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--panel-radius);
+    display: flex; flex-direction: column; overflow: hidden;
+    transition: border-color 0.4s ease;
+}
+.panel:hover { border-color: rgba(0, 212, 255, 0.3); }
+
+.panel-header {
+    height: 30px; background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid var(--panel-border);
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 15px; font-family: var(--font-mono); font-size: 9px; font-weight: 700;
+    letter-spacing: 2px; color: var(--primary);
+}
+
+/* 📸 CAPTURE SYSTEM (LEFT) */
+.hud-left { grid-area: left; display: flex; flex-direction: column; gap: 20px; }
+.capture-panel { flex: none; }
+
+.vision-feed { width: 100%; aspect-ratio: 1; background: #000; position: relative; overflow: hidden; }
+#vision-canvas { width: 100%; height: 100%; object-fit: cover; }
+#recording-overlay { position: absolute; top: 10px; left: 10px; background: var(--alert); color: #fff; padding: 5px 10px; font-size: 10px; font-weight: 700; border-radius: 4px; animation: blink 1s infinite; }
+
+.audio-controls { padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 15px; }
+.record-btn { width: 100%; padding: 15px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--panel-border); border-radius: 12px; color: var(--primary); display: flex; align-items: center; justify-content: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; }
+.record-btn.recording { background: var(--alert-glow); border-color: var(--alert); color: var(--alert); }
+
+.upload-zone { padding: 30px 20px; border: 2px dashed var(--panel-border); border-radius: 12px; display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; transition: all 0.3s ease; text-align: center; color: #94a3b8; margin: 15px; }
+.upload-zone:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-glow); }
+
+.wave-bars { display: flex; gap: 3px; height: 30px; align-items: center; }
+.bar { width: 3px; height: 4px; background: var(--primary); border-radius: 2px; opacity: 0.4; transition: height 0.1s ease; }
+
+/* 🎯 CENTER ACTIONS */
+.hud-center { grid-area: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.nerve-orb-container { width: 400px; height: 400px; position: relative; }
+.orb-ring { position: absolute; inset: 0; border: 1px solid rgba(0, 212, 255, 0.15); border-radius: 50%; }
+.ring-1 { animation: spin 10s linear infinite; border-top-color: var(--primary); }
+.ring-2 { animation: spin 15s linear reverse infinite; border-bottom-color: var(--secondary); margin: 30px; }
+#orb-canvas { position: absolute; inset: 0; z-index: 10; }
+
+.primary-btn { margin-top: 40px; padding: 15px 40px; background: var(--primary); color: #000; border: none; border-radius: 40px; font-weight: 700; letter-spacing: 2px; cursor: pointer; box-shadow: 0 0 20px var(--primary-glow); transition: all 0.3s ease; }
+.primary-btn.disabled { opacity: 0.3; pointer-events: none; box-shadow: none; }
+
+/* 📊 RESULTS (RIGHT) */
+.hud-right { grid-area: right; display: flex; flex-direction: column; gap: 20px; }
+.emotion-card { padding: 30px; text-align: center; }
+#res-emoji { font-size: 48px; display: block; margin-bottom: 10px; }
+#res-emotion { font-size: 28px; letter-spacing: 4px; color: var(--primary); }
+.mode-tag { display: inline-block; margin-top: 10px; padding: 4px 12px; background: rgba(255,255,255,0.1); border-radius: 20px; font-size: 10px; font-family: var(--font-mono); }
+
+.confidence-container { padding: 0 30px 30px; }
+.chart-container { padding: 15px; height: 180px; }
+
+.chat-module { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
+.bubble { max-width: 90%; padding: 12px 18px; border-radius: 15px; font-size: 13px; line-height: 1.6; animation: bubbleIn 0.5s ease-out; }
+.bubble.ai { background: rgba(0, 212, 255, 0.1); border-left: 2px solid var(--primary); align-self: flex-start; border-bottom-left-radius: 2px; }
+.bubble.user { background: rgba(168, 85, 247, 0.1); border-right: 2px solid var(--secondary); align-self: flex-end; border-bottom-right-radius: 2px; }
+.bubble.system { background: rgba(255, 255, 255, 0.05); align-self: center; font-size: 11px; color: #94a3b8; }
+
+/* 🔐 UI LOCKING & STATES */
+body.lock-ui { cursor: wait; }
+body.lock-ui .hud-layout { pointer-events: none; opacity: 0.8; }
+.hidden { display: none !important; }
+
+/* 🧠 STATE ADAPTATION */
+body.state-flow { --primary: #10b981; }
+body.state-stressed { --primary: #f59e0b; }
+body.state-overwhelmed { --primary: #ef4444; }
+body.state-overwhelmed .hud-center { display: none; }
+
+.hud-footer {
+    grid-area: footer; display: flex; align-items: center; justify-content: center;
+    opacity: 0.3; font-family: var(--font-mono); font-size: 8px; letter-spacing: 4px;
+}
+
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+@keyframes bubbleIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* 🧿 GAZE TRACKER (GHOST) */
+#eye-tracker { position: fixed; width: 60px; height: 60px; border: 1px solid var(--primary-glow); border-radius: 50%; pointer-events: none; z-index: 1000; transition: transform 0.15s ease-out; display: flex; align-items: center; justify-content: center; }
+#eye-tracker::after { content: ''; width: 4px; height: 4px; background: var(--primary); border-radius: 50%; }

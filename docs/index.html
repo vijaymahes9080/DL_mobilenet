@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💎 ORIEN | NEURAL CRYSTAL</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts: Futuristic & Technical -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- 🌌 NEURAL BACKDROP -->
+    <canvas id="neural-canvas"></canvas>
+    <div id="neural-aura"></div>
+    <div class="neural-grid"></div>
+    
+    <!-- 🛰️ SENSOR ELEMENTS (HIDDEN) -->
+    <video id="webcam-source" autoplay playsinline style="display:none;"></video>
+    <canvas id="capture-canvas" style="display:none;"></canvas>
+
+    <!-- 🧿 GAZE TRACKER -->
+    <div id="eye-tracker"></div>
+
+    <!-- 💎 PRIMARY HUD LAYOUT -->
+    <div class="hud-layout">
+        
+        <!-- TOP: NAV & STATUS -->
+        <header class="hud-header">
+            <div class="status-cluster">
+                <div class="status-node" id="nav-clock">00:00:00 [UTC]</div>
+                <div class="status-node" id="app-state-indicator">SYNC_IDLE</div>
+            </div>
+            
+            <div class="status-cluster">
+                <div id="webcam-toggle" class="control-node" title="Toggle Vision">
+                    <i class="fas fa-video"></i>
+                    <span>VISION</span>
+                </div>
+                <div id="lang-toggle" class="control-node">
+                    <i class="fas fa-language"></i>
+                    <span id="lang-display">EN-US</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- LEFT: MULTIMODAL CAPTURE -->
+        <aside class="hud-left">
+            <!-- 📹 VISION CAPTURE -->
+            <section class="panel capture-panel">
+                <div class="panel-header">VISION_CAPTURE</div>
+                <div class="vision-feed">
+                    <video id="webcam-source" autoplay playsinline style="display:none;"></video>
+                    <canvas id="vision-canvas"></canvas>
+                    <div id="recording-overlay" class="hidden">CAPTURING...</div>
+                </div>
+            </section>
+
+            <!-- 🎙️ AUDIO CAPTURE -->
+            <section class="panel capture-panel">
+                <div class="panel-header">AUDIO_CAPTURE</div>
+                <div class="audio-controls">
+                    <button id="voice-record-btn" class="record-btn">
+                        <i class="fas fa-microphone"></i>
+                        <span id="record-status">IDLE</span>
+                    </button>
+                    <div class="wave-bars" id="voice-waves">
+                        <!-- Bars via JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- 📁 FILE UPLOAD -->
+            <section class="panel capture-panel">
+                <div class="panel-header">UPLOAD_RESOURCE</div>
+                <div class="upload-zone" id="drop-zone">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <span>Drop .wav, .mp3, .jpg, or .png</span>
+                    <input type="file" id="file-input" hidden accept=".wav,.mp3,.jpg,.png">
+                </div>
+            </section>
+        </aside>
+
+        <!-- CENTER: GENERIC INTERFACE -->
+        <main class="hud-center">
+            <div class="nerve-orb-container">
+                <div class="orb-ring ring-1"></div>
+                <div class="orb-ring ring-2"></div>
+                <canvas id="orb-canvas"></canvas>
+            </div>
+            <button id="generate-prediction" class="primary-btn disabled" disabled>
+                GENERATE PREDICTION
+            </button>
+        </main>
+
+        <!-- RIGHT: REFINED RESULTS -->
+        <aside class="hud-right">
+            <!-- EMOTION CARD -->
+            <section class="panel result-panel hidden" id="result-card">
+                <div class="panel-header">NEURAL_DECODER</div>
+                <div class="emotion-card">
+                    <span id="res-emoji">🧿</span>
+                    <h2 id="res-emotion">ANALYZING...</h2>
+                    <div id="res-mode" class="mode-tag">MODE: ---</div>
+                </div>
+                
+                <div class="confidence-container" id="confidence-bars">
+                    <!-- Bars via JS -->
+                </div>
+            </section>
+
+            <!-- TEMPORAL CHART -->
+            <section class="panel chart-panel">
+                <div class="panel-header">TEMPORAL_HISTORY</div>
+                <div class="chart-container">
+                    <canvas id="history-chart"></canvas>
+                </div>
+            </section>
+
+            <!-- SYNCED CHAT -->
+            <section class="panel chat-module" id="chat-feed">
+                <!-- Bubbles via JS -->
+            </section>
+        </aside>
+
+        <!-- FOOTER: COMMAND TRACER -->
+        <footer class="hud-footer">
+            💎 ORIEN — MULTIMODAL SYNC ACTIVE
+        </footer>
+    </div>
+    
+    <canvas id="capture-canvas" style="display:none;"></canvas>
+
+    <!-- Modern Modular Logic -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
