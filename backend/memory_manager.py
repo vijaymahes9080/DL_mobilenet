@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import datetime
+import collections
 from typing import List, Dict, Any, Optional
 
 log = logging.getLogger("ORIEN.Memory")
@@ -16,7 +17,7 @@ class MemoryManager:
         self.file_path = os.path.join(self.base_dir, filename)
         self.data = self._load()
         
-        # [V12 VECTOR DB MEMORY]
+        # VECTOR DB MEMORY
         self.doc_id = len(self.data.get("history", []))
         try:
             import chromadb
@@ -151,6 +152,25 @@ class MemoryManager:
 
     def get_profile(self) -> Dict:
         return self.data["user_profile"]
+
+    def get_state_summary(self, limit: int = 20) -> str:
+        """Aggregates recent states into a session context."""
+        history = self.data["history"][-limit:]
+        intents = [h.get("metadata", {}).get("intent") for h in history if h.get("metadata", {}).get("intent")]
+        
+        if not intents: return "Neutral Baseline"
+        
+        counts = collections.Counter(intents)
+        dom = counts.most_common(1)[0][0]
+        
+        patterns = {
+            "FLOW": "User has demonstrated sustained deep focus.",
+            "STRESSED": "User appears to be under cognitive pressure recently.",
+            "OVERWHELMED": "System detects potential task-overload for the user.",
+            "DISTRACTED": "User's attention seems fragmented."
+        }
+        
+        return f"SESSION PATTERN: {patterns.get(dom, 'Consistent calm state.')}"
 
     def increment_encounters(self):
         self.data["stats"]["total_encounters"] += 1

@@ -1,0 +1,167 @@
+{
+    "user_profile": {
+        "name": "Member",
+        "interests": [],
+        "preferences": {
+            "talkative": true,
+            "communication_style": "Friendly",
+            "triggers": {},
+            "patterns": {}
+        },
+        "language": "en-US",
+        "created_at": "2026-04-07T15:46:40.819407"
+    },
+    "history": [
+        {
+            "role": "user",
+            "content": "The user is NEUTRAL and feels OVERWHELMED. ORIEN Insight: . Prepare 1 empathetic sentence reflecting this.",
+            "timestamp": "2026-04-09T04:31:06.239401",
+            "metadata": {
+                "sentiment": "Neutral"
+            }
+        },
+        {
+            "role": "assistant",
+            "content": "It sounds like you're feeling a bit overwhelmed right now. Would you like to talk more about what's causing that feeling?",
+            "timestamp": "2026-04-09T04:31:19.514097",
+            "metadata": {
+                "intent": "OVERWHELMED",
+                "confidence": 0.443,
+                "strategy": "Passive"
+            }
+        },
+        {
+            "role": "user",
+            "content": "The user is NEUTRAL and feels OVERWHELMED. ORIEN Insight: Neural data suggests cognitive saturation. I recommend a 5-minute deep breathing cycle to recalibrate.. Prepare 1 empathetic sentence reflecting this.",
+            "timestamp": "2026-04-09T04:32:06.373132",
+            "metadata": {
+                "sentiment": "Neutral"
+            }
+        },
+        {
+            "role": "assistant",
+            "content": "I understand how overloaded you feel, so taking a 5\u2011minute deep breathing cycle might help you recalibrate.  \nWould you like me to guide you through that breathing exercise right now?",
+            "timestamp": "2026-04-09T04:32:17.803759",
+            "metadata": {
+                "intent": "OVERWHELMED",
+                "confidence": 0.806,
+                "strategy": "Active"
+            }
+        },
+        {
+            "role": "user",
+            "content": "The user is NEUTRAL and feels OVERWHELMED. ORIEN Insight: Neural data suggests cognitive saturation. I recommend a 5-minute deep breathing cycle to recalibrate.. Prepare 1 empathetic sentence reflecting this.",
+            "timestamp": "2026-04-09T04:33:07.079008",
+            "metadata": {
+                "sentiment": "Neutral"
+            }
+        },
+        {
+            "role": "assistant",
+            "content": "I understand how overloaded you feel, so taking a 5\u2011minute deep breathing cycle might help you recalibrate.  \nWould you like me to guide you through that breathing exercise right now?",
+            "timestamp": "2026-04-09T04:33:11.882962",
+            "metadata": {
+                "intent": "OVERWHELMED",
+                "confidence": 0.806,
+                "strategy": "Active"
+            }
+        },
+        {
+            "role": "user",
+            "content": "The user is NEUTRAL and feels OVERWHELMED. ORIEN Insight: Neural data suggests cognitive saturation. I recommend a 5-minute deep breathing cycle to recalibrate.. Prepare 1 empathetic sentence reflecting this.",
+            "timestamp": "2026-04-09T04:33:16.192982",
+            "metadata": {
+                "sentiment": "Neutral"
+            }
+        },
+        {
+            "role": "assistant",
+            "content": "I understand how overloaded you feel, so taking a 5\u2011minute deep breathing cycle might help you recalibrate.  \nWould you like me to guide you through that breathing exercise right now?",
+            "timestamp": "2026-04-09T04:33:17.770857",
+            "metadata": {
+                "intent": "OVERWHELMED",
+                "confidence": 0.806,
+                "strategy": "Active"
+            }
+        },
+        {
+            "role": "user",
+            "content": "The user is NEUTRAL and feels OVERWHELMED. ORIEN Insight: Neural data suggests cognitive saturation. I recommend a 5-minute deep breathing cycle to recalibrate.. Prepare 1 empathetic sentence reflecting this.",
+            "timestamp": "2026-04-09T04:34:16.272665",
+            "metadata": {
+                "sentiment": "Neutral"
+            }
+        },
+        {
+            "role": "assistant",
+            "content": "I understand how overloaded you feel, so taking a 5\u2011minute deep breathing cycle might help you recalibrate.  \nWould you like me to guide you through that breathing exercise right now?",
+            "timestamp": "2026-04-09T04:34:24.338574",
+            "metadata": {
+                "intent": "OVERWHELMED",
+                "confidence": 0.806,
+                "strategy": "Active"
+            }
+        },
+        {
+            "role": "user",
+            "content": "The user is NEUTRAL and feels OVERWHELMED. ORIEN Insight: Neural data suggests cognitive saturation. I recommend a 5-minute deep breathing cycle to recalibrate.. Prepare 1 empathetic sentence reflecting this.",
+            "timestamp": "2026-04-09T04:35:16.512622",
+            "metadata": {
+                "sentiment": "Neutral"
+            }
+        },
+        {
+            "role": "assistant",
+            "content": "I understand how overloaded you feel, so taking a 5\u2011minute deep breathing cycle might help you recalibrate.  \nWould you like me to guide you through that breathing exercise right now?",
+            "timestamp": "2026-04-09T04:35:25.520843",
+            "metadata": {
+                "intent": "OVERWHELMED",
+                "confidence": 0.806,
+                "strategy": "Active"
+            }
+        },
+        {
+            "role": "user",
+            "content": "The user is NEUTRAL and feels OVERWHELMED. ORIEN Insight: Neural data suggests cognitive saturation. I recommend a 5-minute deep breathing cycle to recalibrate.. Prepare 1 empathetic sentence reflecting this.",
+            "timestamp": "2026-04-09T04:36:17.243608",
+            "metadata": {
+                "sentiment": "Neutral"
+            }
+        },
+        {
+            "role": "assistant",
+            "content": "I understand how overloaded you feel, so taking a 5\u2011minute deep breathing cycle might help you recalibrate.  \nWould you like me to guide you through that breathing exercise right now?",
+            "timestamp": "2026-04-09T04:36:19.165927",
+            "metadata": {
+                "intent": "OVERWHELMED",
+                "confidence": 0.806,
+                "strategy": "Active"
+            }
+        },
+        {
+            "role": "user",
+            "content": "The user is NEUTRAL and feels OVERWHELMED. ORIEN Insight: Neural data suggests cognitive saturation. I recommend a 5-minute deep breathing cycle to recalibrate.. Prepare 1 empathetic sentence reflecting this.",
+            "timestamp": "2026-04-09T04:37:17.347871",
+            "metadata": {
+                "sentiment": "Neutral"
+            }
+        },
+        {
+            "role": "assistant",
+            "content": "I understand how overloaded you feel, so taking a 5\u2011minute deep breathing cycle might help you recalibrate.  \nWould you like me to guide you through that breathing exercise right now?",
+            "timestamp": "2026-04-09T04:37:29.595859",
+            "metadata": {
+                "intent": "OVERWHELMED",
+                "confidence": 0.806,
+                "strategy": "Active"
+            }
+        }
+    ],
+    "stats": {
+        "total_queries": 8,
+        "total_encounters": 10,
+        "emotion_freq": {
+            "Neutral": 344
+        }
+    }
+}

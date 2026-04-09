@@ -1,6 +1,6 @@
 import os, subprocess, threading, time, sys, webbrowser
 
-# 💎 ORIEN | CRYSTAL V7.7 MASTER LAUNCHER
+# 💎 ORIEN | CRYSTAL Release MASTER LAUNCHER
 # ========================================
 # Path-Safe, ASGI-Correct, Multi-Threaded Sync.
 
@@ -25,8 +25,8 @@ def run_frontend():
 
 def open_portal():
     print("ORIEN | Portal Establishing...")
-    time.sleep(3)
-    webbrowser.open("http://localhost:8080")
+    time.sleep(4) # Allow time for Keras models to lazy-load if needed
+    webbrowser.open("http://localhost:8000")
     print("ORIEN | HUD Sync ACTIVE.")
 
 if __name__ == "__main__":
@@ -34,11 +34,10 @@ if __name__ == "__main__":
 
     # Start Threads
     threading.Thread(target=run_backend, daemon=True).start()
-    threading.Thread(target=run_frontend, daemon=True).start()
     threading.Thread(target=open_portal, daemon=True).start()
 
     print("\n" + "💎"*30)
-    print("  ORIEN CRYSTAL V7.7 | SYNERGY BOOT")
+    print("  ORIEN CRYSTAL Release | SYNERGY BOOT")
     print("  Status: Neural Fibers Aligned.")
     print("💎"*30 + "\n")
 

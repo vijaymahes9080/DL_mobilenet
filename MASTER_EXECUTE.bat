@@ -1,5 +1,5 @@
 @echo off
-title "ORIEN | MASTER SYNERGY SEQUENCE [ELITE]"
+title "ORIEN | MASTER SYNERGY SEQUENCE [Advanced]"
 setlocal enabledelayedexpansion
 
 :: 💎 ORIEN: MASTER SYNERGY SEQUENCE (FULL AUTOMATION)

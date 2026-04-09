@@ -1,21 +1,21 @@
-import os, sys
+import os, sys, argparse
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 
 import shutil, time, collections
-# 💠 ORIEN: RESOURCE-OPTIMAL MASTER TRAINER [SOTA ELITE]
+# 💠 ORIEN: RESOURCE-OPTIMAL MASTER TRAINER [Optimized Advanced]
 # Specialized for High-Performance Deep Learning with Low Memory Footprint.
 
-# [SYNERGY] UTF-8 Fixed for Windows Console (MUST BE FIRST)
+# UTF-8 Fixed for Windows Console (MUST BE FIRST)
 if sys.platform == "win32":
     try:
         sys.stdout.reconfigure(encoding='utf-8')
     except AttributeError: pass
 
 print("BOOTING ORIEN NEURAL TRAINER... (Bootstrap Successful)")
-print("[4. NEURAL CYCLE] ELITE BOOT: Master Synapse Initialized.")
+print("Advanced BOOT: Master Synapse Initialized.")
 
 import numpy as np, pandas as pd, tensorflow as tf, requests, json
 from pathlib import Path
@@ -23,27 +23,27 @@ from tensorflow.keras import layers, models, callbacks, applications, optimizers
 from datetime import datetime
 
 ROOT = Path(__file__).parent.parent.absolute()
-MODELS_ROOT = ROOT / "models"
+MODELS_ROOT = ROOT / "models" / "vmax"
 DATASET_ROOT = ROOT / "dataset"
-REPORT_PATH = MODELS_ROOT / "core" / "MASTER_TRAINING_REPORT.md"
+REPORT_PATH = MODELS_ROOT / "MASTER_TRAINING_REPORT.md"
 
-# SOTA Hyperparameters
+# Optimized Hyperparameters
 IMG_SIZE = 128 
-BATCH_SIZE = 8 
+BATCH_SIZE = 32 
 EPOCHS = 10 
 LR = 1e-4
 
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--modality", type=str, required=True, help="Specific modality, 'all', or comma-separated list (e.g., voice,gesture,behavior)")
-    parser.add_argument("--epochs", type=int, default=50) # [TRAIN-OPT] Increased for convergence
-    parser.add_argument("--batch_size", type=int, default=BATCH_SIZE) # [MEM-OPT] Use default optimized batch size
+    parser.add_argument("--epochs", type=int, default=20) # Optimized for quick but deep convergence
+    parser.add_argument("--batch_size", type=int, default=BATCH_SIZE) # Use default optimized batch size
     return parser.parse_args()
 
 def configure_performance():
     """Optimizes TF Memory and Processor allocation."""
-    print("\n[4. NEURAL CYCLE] ELITE BOOT: Master Synapse Initialized.")
-    print("[SYS] VRAM Growth & AUTOTUNE threads initialized.\n")
+    print("\nAdvanced BOOT: Master Synapse Initialized.")
+    print("VRAM Growth & AUTOTUNE threads initialized.\n")
     gpus = tf.config.list_physical_devices('GPU')
     if gpus:
         try:
@@ -53,9 +53,9 @@ def configure_performance():
         except: pass
     else:
         print("⚠️  No GPU found. Optimizing CPU Worker threads...")
-        tf.config.threading.set_inter_op_parallelism_threads(4) # [PROC-OPT]
+        tf.config.threading.set_inter_op_parallelism_threads(4) 
     
-    # [MASTER-OPT] Mixed Precision for 10-epoch Master Level (if GPU available)
+    # Mixed Precision for 10-epoch Master Level (if GPU available)
     try:
         if gpus:
             from tensorflow.keras import mixed_precision
@@ -87,15 +87,15 @@ class HUDCallback(tf.keras.callbacks.Callback):
             requests.post(self.api_url, json=payload, timeout=0.5)
         except: pass
 
-# --- SOTA NEXT-LEVEL MODEL (Visual Core) ---
+# --- Optimized NEXT-LEVEL MODEL (Visual Core) ---
 def build_elite_model(name, img_size, num_classes):
     print(f"🧬 Building Neural Vision Core for {name.upper()}...")
     
     # Efficient architecture is optimized for high accuracy on low-memory profiles
-    base = applications.EfficientNetV2B0(input_shape=(img_size, img_size, 3), include_top=False, weights='imagenet')
+    # Switched to MobileNetV2 for CPU-Optimal training speed
+    base = applications.MobileNetV2(input_shape=(img_size, img_size, 3), include_top=False, weights='imagenet')
     base.trainable = True
-    # Unfreeze significantly more layers for better adaptation to specialized modalities
-    for layer in base.layers[:30]: layer.trainable = False
+    for layer in base.layers[:50]: layer.trainable = False
     
     model = models.Sequential([
         layers.Input(shape=(img_size, img_size, 3)),
@@ -114,7 +114,7 @@ def build_elite_model(name, img_size, num_classes):
         layers.Dense(num_classes, activation='softmax')
     ], name=f"ORIEN_{name.upper()}_CORE") 
     
-    # [SYNERGY-FIX] Using static float learning rate to avoid Keras 3 schedule incompatibility
+    # Using static float learning rate to avoid Keras 3 schedule incompatibility
     initial_lr = 2e-4
     if args.epochs < 5: initial_lr = 1e-4
     
@@ -137,10 +137,10 @@ def build_mlp_model(name, input_dim, num_classes):
 
 def train_modality(name, folder, args):
     """Executes the training loop for a specific neural modality."""
-    print("\n" + "="*60 + f"\n 🚀 [MASTER] TRAINING: {name.upper()}\n" + "="*60)
+    print("\n" + "="*60 + f"\n 🚀 TRAINING: {name.upper()}\n" + "="*60)
     
     start_time = time.time()
-    save_path = MODELS_ROOT / "core" / name / f"{name}_optimal.keras"
+    save_path = MODELS_ROOT / name / f"{name}_optimal.keras"
 
     save_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -152,15 +152,15 @@ def train_modality(name, folder, args):
     pq_files = list(data_path.glob("*.parquet"))
     if pq_files:
         unpack_path = data_path / "_unpacked_"
-        # [FIX] Only re-unpack if _unpacked_ is empty (avoid redundant re-extraction)
+        # Only re-unpack if _unpacked_ is empty (avoid redundant re-extraction)
         already_unpacked = unpack_path.exists() and any(unpack_path.iterdir())
         if already_unpacked:
-            print(f"📦 [SYNC] Parquet already unpacked for {name.upper()}, reusing _unpacked_.")
+            print(f"📦 Parquet already unpacked for {name.upper()}, reusing _unpacked_.")
             train_path = unpack_path
             parquet_unpacked = True
         else:
-            print(f"📡 [SYNC] Detected Parquet shards for {name.upper()}: Unpacking...")
-            # [CLEANUP] Keep shards for now for verification
+            print(f"📡 Detected Parquet shards for {name.upper()}: Unpacking...")
+            # Keep shards for now for verification
             # for f in pq_files:
             #     try: os.remove(f)
             #     except: pass
@@ -194,8 +194,8 @@ def train_modality(name, folder, args):
             train_path = unpack_path
             parquet_unpacked = True
 
-    # [DATA-OPT] Robust folder discovery for nested structures
-    # [FIX] Skip when parquet unpacking already determined the correct train_path
+    # Robust folder discovery for nested structures
+    # Skip when parquet unpacking already determined the correct train_path
     if not parquet_unpacked:
         potential_subs = ["_unpacked_", "train", "faces", "classes", "subjects", "training_files", "imgs"]
         for sub in potential_subs:
@@ -203,12 +203,12 @@ def train_modality(name, folder, args):
                 train_path = data_path / sub
                 break
             
-    # [DATA-OPT] Image size mapping for all 8 modalities - Reduced for RAM stability
+    # Image size mapping for all 8 modalities - Reduced for RAM stability
     size_map = {
-        "face": 160, "face_alt": 160, "face_orl": 160, "emotion_master": 160,
-        "gesture": 160, "eye": 128, "voice": 160, "behavior": 160
+        "face": 96, "face_alt": 96, "face_orl": 96, "emotion_master": 96,
+        "gesture": 96, "eye": 96, "voice": 96, "behavior": 96
     }
-    sz = size_map.get(name, IMG_SIZE)
+    sz = size_map.get(name, 96)
 
     if not train_path.exists() and name != "behavior":
         print(f"⚠️  Skipping {name.upper()}: Path {train_path} not found.")
@@ -217,13 +217,31 @@ def train_modality(name, folder, args):
     # Logic for non-image behavior modality
     if name == "behavior":
         try:
-            print(f"[*] Processing non-visual behavioral logs for {name.upper()}...")
-            # We look for public_labels.csv or session files
-            # This is a fallback to the V11.1 feature extractor if no folders exist
+            print(f"[*] Processing preprocessed behavioral features for {name.upper()}...")
+            # Prefer preprocessed artifact from master script
+            preprocessed_csv = ROOT / "training" / "behavioral_features_full.csv"
+            if preprocessed_csv.exists():
+                df = pd.read_csv(preprocessed_csv)
+                print(f"  Found {len(df)} preprocessed samples. Synchronizing...")
+                
+                X = df.drop('is_illegal', axis=1).values
+                y = df['is_illegal'].values
+                num_classes = len(np.unique(y))
+                
+                model = build_mlp_model(name, X.shape[1], num_classes)
+                print(f"[*] Training Optimized MLP for {name.upper()} [Epochs: {args.epochs}]...")
+                history = model.fit(X, y, epochs=args.epochs, validation_split=0.2, verbose=0, callbacks=[HUDCallback(name, args.epochs)])
+                duration = time.time() - start_time
+                best_acc = max(history.history['val_accuracy'])
+                model.save(save_path)
+                print(f"✅ {name.upper()} Synergy Complete ({duration:.1f}s). Best Accuracy: {best_acc:.2%}")
+                return {"modality": name, "accuracy": best_acc, "time": f"{duration:.1f}s", "status": "Stable", "epochs": args.epochs}
+            
+            # Fallback to existing logic if artifact missing
             label_csv = data_path / "public_labels.csv"
             if label_csv.exists():
                 df = pd.read_csv(label_csv)
-                print(f"  [OK] Found {len(df)} metadata logs. Creating feature set...")
+                print(f"  Found {len(df)} metadata logs. Creating feature set...")
                 num_classes = 3 # Nominal, Stressed, Overwhelmed
                 
                 # Synthetic Data Generation based on heuristics (if real features missing)
@@ -257,7 +275,7 @@ def train_modality(name, folder, args):
             return {"modality": name, "accuracy": 0.0, "time": "0.0s", "status": "MLP-Sync-Error"}
 
     try:
-        # [DATA-OPT] Dynamic Load with Auto-tuning and Prefetch
+        # Dynamic Load with Auto-tuning and Prefetch
         # Ensure we have subdirectories (classes) before attempting load
         subdirs = [d for d in train_path.iterdir() if d.is_dir()]
         if len(subdirs) < 2:
@@ -270,19 +288,19 @@ def train_modality(name, folder, args):
         )
         train_ds, val_ds = ds
         
-        # [PROC-OPT] Neural Data Streaming (Transforms return _PrefetchDataset)
-        # [MOD] Removed .cache() to prevent OOM on large identity datasets (5k+ classes)
-        print("[DEBUG] Getting class names...")
+        # Neural Data Streaming (Transforms return _PrefetchDataset)
+        # Removed .cache() to prevent OOM on large identity datasets (5k+ classes)
+        print("Getting class names...")
         class_names = train_ds.class_names
         num_classes = len(class_names)
         
-        print(f"[DEBUG] Transforming datasets for {num_classes} classes...")
+        print(f"Transforming datasets for {num_classes} classes...")
         train_ds = train_ds.shuffle(1000).prefetch(tf.data.AUTOTUNE)
         val_ds = val_ds.prefetch(tf.data.AUTOTUNE)
         
         model = build_elite_model(name, sz, num_classes)
         
-        # [BALANCING] Dynamic Class Weighting (Crucial for imbalanced sets like FER/ORL)
+        # Dynamic Class Weighting (Crucial for imbalanced sets like FER/ORL)
         print(f"[*] Analyzing class distribution for {name.upper()}...")
         y_labels = []
         # Take a representative sample for fast weighting (limit to 50k items for reliability)
@@ -296,9 +314,9 @@ def train_modality(name, folder, args):
         for i in range(num_classes):
             if i not in class_weights: class_weights[i] = 1.0
             
-        print(f"✅ Balanced Weights initialized: {len(class_weights)} classes optimized.")
+        print(f"Balanced Weights initialized: {len(class_weights)} classes optimized.")
 
-        # [MASTER-OPT] Dynamic Callbacks based on Epoch Count
+        # Dynamic Callbacks based on Epoch Count
         patience_stop = max(5, args.epochs // 4)
         patience_lr = max(3, args.epochs // 8)
         if args.epochs <= 5:
@@ -326,9 +344,9 @@ def train_modality(name, folder, args):
         print(f"❌ Critical Error in {name.upper()}: {e}")
         return {"modality": name, "accuracy": 0.0, "time": "0.0s", "status": f"Error: {str(e)[:50]}"}
     finally:
-        # [MEM-OPT] Force memory release to prevent VRAM accumulation
+        # Force memory release to prevent VRAM accumulation
         tf.keras.backend.clear_session()
-        print(f"[SYS] Memory cleared for {name.upper()}.")
+        print(f"Memory cleared for {name.upper()}.")
 
 if __name__ == "__main__":
     configure_performance()
@@ -340,14 +358,15 @@ if __name__ == "__main__":
     else:
         mods = [args.modality]
     paths = { 
-        "face": "face_core", 
-        "gesture": "gesture_hub", 
+        "face": "vision_preprocessed", # Point to preprocessed JPG shards for optimal speed
+        "gesture": "gesture/classes", 
         "voice": "voice_cloud", 
-        "behavior": "behavior_node", 
-        "eye": "eye_monitor", 
-        "face_alt": "face_alt", 
+        "behavior": "behavior", 
+        "eye": "eye_monitor/train", 
+        "face_alt": "face_emotion/train", 
         "face_orl": "face_orl", 
-        "emotion_master": "face_emotion" # Point directly to valid training set
+        "emotion_master": "face_emotion/train",
+        "face_emotion": "face_emotion/train" # Added explicit mapping
     }
     
     results = []
@@ -355,7 +374,7 @@ if __name__ == "__main__":
         res = train_modality(m, paths[m], args)
         if res: results.append(res)
         
-    # --- [PHASE 5] MASTER REPORTING ---
+    # MASTER REPORTING
     print("\n" + "💎"*30)
     print("  ORIEN MASTER TRAINER: FINAL SYNERGY REPORT")
     print("💎"*30)

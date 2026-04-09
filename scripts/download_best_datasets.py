@@ -1,6 +1,6 @@
 import os, sys, shutil, zipfile, requests
 
-# 💎 ORIEN NEURAL MASTER | SOTA-HYPER SYNC [READY-STATE]
+# 💎 ORIEN NEURAL MASTER | Optimized-HYPER SYNC [READY-STATE]
 # Ensures all modalities reach [READY] status with confirmed high-accuracy sources.
 
 # if sys.platform == "win32":
@@ -63,7 +63,7 @@ def sync_modality(name, urls):
 
 if __name__ == "__main__":
     print("\n" + "="*70)
-    print("  ORIEN NEURAL MASTER | SOTA SYNC")
+    print("  ORIEN NEURAL MASTER | Optimized SYNC")
     print("  Status: AGGRESSIVE SYNC | Mode: AUTOMATED")
     print("="*70)
     

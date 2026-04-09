@@ -17,6 +17,12 @@
     <div id="neural-aura"></div>
     <div class="neural-grid"></div>
     
+    <!-- 🧠 PROACTIVE INSIGHT OVERLAY -->
+    <div id="insight-overlay">
+        <i class="fas fa-brain"></i>
+        <span id="insight-text">OPTIMIZING COGNITIVE SYNERGY...</span>
+    </div>
+    
     <!-- 🛰️ SENSOR ELEMENTS (HIDDEN) -->
     <video id="webcam-source" autoplay playsinline style="display:none;"></video>
     <canvas id="capture-canvas" style="display:none;"></canvas>
@@ -44,6 +50,15 @@
                     <span id="lang-display">EN-US</span>
                 </div>
             </div>
+
+            <!-- 📊 ENTROPY GAUGE -->
+            <div class="entropy-module">
+                <span class="label">NEURAL_STABILITY</span>
+                <div class="gauge-bg">
+                    <div id="entropy-bar" class="gauge-fill"></div>
+                </div>
+                <span id="entropy-value" class="value">0.00</span>
+            </div>
         </header>
 
         <!-- LEFT: MULTIMODAL CAPTURE -->
@@ -52,7 +67,6 @@
             <section class="panel capture-panel">
                 <div class="panel-header">VISION_CAPTURE</div>
                 <div class="vision-feed">
-                    <video id="webcam-source" autoplay playsinline style="display:none;"></video>
                     <canvas id="vision-canvas"></canvas>
                     <div id="recording-overlay" class="hidden">CAPTURING...</div>
                 </div>
@@ -120,8 +134,15 @@
             </section>
 
             <!-- SYNCED CHAT -->
-            <section class="panel chat-module" id="chat-feed">
-                <!-- Bubbles via JS -->
+            <section class="panel chat-module">
+                <div class="panel-header">NEURAL_DECODER</div>
+                <div id="chat-feed" class="chat-content">
+                    <!-- Bubbles via JS -->
+                </div>
+                <div class="chat-input-container">
+                    <input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off">
+                    <button id="chat-send"><i class="fas fa-paper-plane"></i></button>
+                </div>
             </section>
         </aside>
 
@@ -130,8 +151,6 @@
             💎 ORIEN — MULTIMODAL SYNC ACTIVE
         </footer>
     </div>
-    
-    <canvas id="capture-canvas" style="display:none;"></canvas>
 
     <!-- Modern Modular Logic -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

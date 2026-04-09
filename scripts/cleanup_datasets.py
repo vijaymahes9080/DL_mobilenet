@@ -1,8 +1,8 @@
 import os, shutil, sys
 from pathlib import Path
 
-# 💎 ORIEN | DATASET SYNERGY CLEANER [V4.0-FINAL]
-# Removes archives and redundant data identifying in the analysis report.
+# 💎 ORIEN | DATASET SYNERGY CLEANER
+# Removes archives and redundant data.
 
 ROOT = Path(r"D:\current project\DL\dataset")
 
@@ -49,7 +49,7 @@ def run_cleanup():
     for d in redundant_dirs:
         if d.exists(): purge(d)
 
-    print("\n[OK] Deep Synergy Reclamation Complete. Project is Pure V13.0 ELITE.")
+    print("\nDeep Synergy Reclamation Complete.")
 
 if __name__ == "__main__":
     if sys.platform == "win32":

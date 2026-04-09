@@ -1,0 +1,62 @@
+[
+    {
+        "index": 0,
+        "true": "Abdullatif_Sener",
+        "pred": "Adriana_Perez_Navarro",
+        "conf": 0.15876026451587677
+    },
+    {
+        "index": 1,
+        "true": "Abdullatif_Sener",
+        "pred": "Ahmed_Lopez",
+        "conf": 0.17407192289829254
+    },
+    {
+        "index": 2,
+        "true": "Abel_Pacheco",
+        "pred": "Ahmed_Lopez",
+        "conf": 0.18985320627689362
+    },
+    {
+        "index": 3,
+        "true": "Abel_Pacheco",
+        "pred": "Ahmed_Lopez",
+        "conf": 0.1682433784008026
+    },
+    {
+        "index": 4,
+        "true": "Abel_Pacheco",
+        "pred": "Afton_Smith",
+        "conf": 0.17543582618236542
+    },
+    {
+        "index": 5,
+        "true": "Abel_Pacheco",
+        "pred": "Adriana_Perez_Navarro",
+        "conf": 0.17195110023021698
+    },
+    {
+        "index": 6,
+        "true": "Abraham_Foxman",
+        "pred": "Afton_Smith",
+        "conf": 0.14125500619411469
+    },
+    {
+        "index": 7,
+        "true": "Adam_Herbert",
+        "pred": "Afton_Smith",
+        "conf": 0.14729014039039612
+    },
+    {
+        "index": 8,
+        "true": "Adel_Al-Jubeir",
+        "pred": "Afton_Smith",
+        "conf": 0.18760989606380463
+    },
+    {
+        "index": 9,
+        "true": "Adel_Al-Jubeir",
+        "pred": "Abdullatif_Sener",
+        "conf": 0.1693984419107437
+    }
+]

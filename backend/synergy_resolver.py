@@ -166,6 +166,26 @@ class BayesianSynergyResolver:
         self.state_history.append(fused)
         if len(self.state_history) > 100: self.state_history.pop(0)
 
+        # 🧠 INSIGHT ABSTRACTION: Detect cognitive streaks or patterns
+        recent_states = [s["intent"] for s in self.state_history[-30:]]
+        recent_emotions = [s["smoothed_emotion"] for s in self.state_history[-30:]]
+        
+        # 1. FLOW STREAK
+        if recent_states.count("FLOW") >= 20:
+            fused["insight"] = "Optimal cognitive alignment detected. You are in a high-density FLOW state; I will suppress distractions."
+        # 2. BURNOUT ALERT
+        elif recent_states.count("STRESSED") >= 15 or recent_states.count("OVERWHELMED") >= 10:
+            fused["insight"] = "Neural data suggests cognitive saturation. I recommend a 5-minute deep breathing cycle to recalibrate."
+        # 3. DISTRACTION LOOP
+        elif recent_states.count("DISTRACTED") >= 18:
+            fused["insight"] = "Frequent context switching detected. Shall we return to the primary task to restore focus?"
+        # 4. POSITIVE SYNERGY
+        elif recent_emotions.count("Happy") >= 15:
+            fused["insight"] = "High positive resonance detected. This emotional state is 40% more productive for creative tasks."
+        # 5. CALM STABILITY
+        elif recent_states.count("CALM") >= 20:
+            fused["insight"] = "System stability achieved. You are elegantly composed and ready for complex decision making."
+        
         return fused
 
 resolver = BayesianSynergyResolver()

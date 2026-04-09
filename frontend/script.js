@@ -11,7 +11,33 @@ class NeuralControlHub {
             vision_fps: 1, // Protocol: 1-2 fps throttled
             emojis: {
                 HAPPY: '😊', SAD: '😢', ANGRY: '😠', NEUTRAL: '😐', STRESSED: '😰', SURPRISE: '😲', DISGUST: '🤢'
+            },
+            behavior_interval: 100, // 10Hz sampling
+            translations: {
+                'en-US': {
+                    VISION: 'VISION',
+                    AUDIO_CAPTURE: 'AUDIO_CAPTURE',
+                    UPLOAD_RESOURCE: 'UPLOAD_RESOURCE',
+                    NEURAL_DECODER: 'NEURAL_DECODER',
+                    TEMPORAL_HISTORY: 'TEMPORAL_HISTORY',
+                    PREDICTION: 'GENERATE PREDICTION'
+                },
+                'ta-IN': {
+                    VISION: 'பார்வை (Vision)',
+                    AUDIO_CAPTURE: 'ஒலி பிடிப்பு (Audio)',
+                    UPLOAD_RESOURCE: 'கோப்புப் பதிவேற்றம் (Upload)',
+                    NEURAL_DECODER: 'நரம்பியல் குறியீடு (Decoder)',
+                    TEMPORAL_HISTORY: 'நேர வரலாறு (History)',
+                    PREDICTION: 'கணிப்பைப் பெறுக (Predict)'
+                }
             }
+        };
+
+        this.behavior = {
+            clicks: 0,
+            moves: 0,
+            positions: [],
+            lastSample: Date.now()
         };
 
         this.elements = {
@@ -22,6 +48,8 @@ class NeuralControlHub {
             micBtn: document.getElementById('voice-record-btn'),
             waves: document.getElementById('voice-waves'),
             chat: document.getElementById('chat-feed'),
+            chatInput: document.getElementById('chat-input'),
+            chatSend: document.getElementById('chat-send'),
             fileInput: document.getElementById('file-input'),
             dropZone: document.getElementById('drop-zone'),
             predictBtn: document.getElementById('generate-prediction'),
@@ -46,11 +74,14 @@ class NeuralControlHub {
             mediaRecorder: null,
             audioChunks: [],
             lastFrame: 0,
-            language: 'en-US',
+            language: localStorage.getItem('orien_lang') || 'en-US',
             hasPendingData: false,
             pendingBlob: null,
             pendingType: null,
-            history: JSON.parse(localStorage.getItem('orien_history') || '[]')
+            history: JSON.parse(localStorage.getItem('orien_history') || '[]'),
+            ws: null,
+            isSpeaking: false,
+            isListening: false
         };
 
         this.init();
@@ -60,9 +91,150 @@ class NeuralControlHub {
         this.setupThreeJS();
         this.setupAudioVisualization();
         this.setupChart();
+        this.setupWebSocket();
         this.bindEvents();
         this.startClock();
+        this.updateLangUI();
         this.setUIState('IDLE');
+        
+        // [AUTO-INIT] Request permissions after brief stabilization delay
+        setTimeout(() => this.requestPermissions(), 1500);
+    }
+
+    async requestPermissions() {
+        console.log("💎 ORIEN | Calibrating Neural Sensors (Camera/Mic)...");
+        try {
+            // Sequential request for clarity
+            await this.toggleWebcam(); // Triggers Camera + Vision Loop
+        } catch (e) {
+            console.warn("Camera auto-init bypassed or blocked.");
+        }
+    }
+
+    /** 🛰️ NEURAL BRIDGE (WebSocket) */
+    setupWebSocket() {
+        this.state.ws = new WebSocket(this.config.ws_url);
+        
+        this.state.ws.onopen = () => {
+            console.log("💎 ORIEN | Neural Bridge ACTIVE.");
+            this.addChatMessage('System', "Neural Bridge Established.");
+        };
+
+        this.state.ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.status === 'ok' && data.message) {
+                    if (data.state) this.updateAppState(data.state);
+                    
+                    if (data.message === "Service temporarily unavailable. Retrying...") {
+                        this.addChatMessage('System', "Neural Routing Failure: Attempting auto-rotation...");
+                    } else {
+                        this.addChatMessage('AI', data.message);
+                    }
+                    
+                    if (data.insight) this.showInsight(data.insight);
+                    if (data.entropy !== undefined) this.updateEntropy(data.entropy);
+                }
+            } catch (e) {
+                console.error("Neural Bridge Sync Error:", e);
+            }
+        };
+
+        this.state.ws.onclose = () => {
+            console.warn("⚠️ ORIEN | Neural Bridge DISCONNECTED. Retrying...");
+            setTimeout(() => this.setupWebSocket(), 5000);
+        };
+    }
+
+    /** 🌐 LANGUAGE BONDING */
+    toggleLanguage() {
+        this.state.language = this.state.language === 'en-US' ? 'ta-IN' : 'en-US';
+        localStorage.setItem('orien_lang', this.state.language);
+        this.updateLangUI();
+        this.addChatMessage('System', `Language calibrated: ${this.state.language === 'en-US' ? 'English' : 'Tamil (தமிழ்)'}`);
+    }
+
+    updateLangUI() {
+        const display = document.getElementById('lang-display');
+        if (display) display.textContent = this.state.language.toUpperCase();
+
+        // [SOTA] High-Fidelity Multilingual Label Sync
+        const labels = this.config.translations[this.state.language] || this.config.translations['en-US'];
+        
+        const map = {
+            'VISION': '.control-node span',
+            'AUDIO_CAPTURE': '.panel-header',
+            'UPLOAD_RESOURCE': '.panel-header',
+            'NEURAL_DECODER': '.panel-header',
+            'TEMPORAL_HISTORY': '.panel-header'
+        };
+
+        // Header Labels
+        const headers = document.querySelectorAll('.panel-header');
+        if (headers.length >= 4) {
+            headers[0].textContent = labels.VISION || 'VISION_CAPTURE'; // Actually Vision is a child usually
+            headers[1].textContent = labels.AUDIO_CAPTURE;
+            headers[2].textContent = labels.UPLOAD_RESOURCE;
+            headers[3].textContent = labels.NEURAL_DECODER;
+            headers[4].textContent = labels.TEMPORAL_HISTORY;
+        }
+
+        const predBtn = document.getElementById('generate-prediction');
+        if (predBtn) predBtn.textContent = labels.PREDICTION;
+    }
+
+    updateAppState(state) {
+        const s = state.toUpperCase();
+        const prevClass = document.body.className;
+        document.body.className = `state-${s.toLowerCase()}`;
+        this.elements.indicators.state.textContent = `SYNC_${s}`;
+        
+        // 🔮 GLITCH EFFECT ON TRANSITION
+        if (prevClass !== document.body.className) {
+            document.body.style.filter = "invert(1) hue-rotate(90deg) contrast(2)";
+            setTimeout(() => { document.body.style.filter = "none"; }, 80);
+        }
+
+        // Aura resonance based on state
+        const aura = document.getElementById('neural-aura');
+        if (aura) aura.className = s === 'HAPPY' || s === 'STRESSED' ? 'active' : '';
+        
+        // Update Orb color based on state
+        if (this.orbMaterial) {
+            const colors = {
+                HAPPY: 0xfbbf24, SAD: 0x94a3b8, ANGRY: 0xef4444, STRESSED: 0xf97316, NEUTRAL: 0x00d4ff
+            };
+            this.orbMaterial.color.setHex(colors[s] || 0x00d4ff);
+            this.orbMaterial.emissive.setHex(colors[s] || 0x00d4ff);
+        }
+    }
+
+    showInsight(text) {
+        const overlay = document.getElementById('insight-overlay');
+        const content = document.getElementById('insight-text');
+        if (!overlay || !content) return;
+
+        content.textContent = text;
+        overlay.classList.add('active');
+        
+        // Reset after 8 seconds
+        clearTimeout(this.insightTimer);
+        this.insightTimer = setTimeout(() => {
+            overlay.classList.remove('active');
+        }, 8000);
+    }
+
+    updateEntropy(entropy) {
+        const bar = document.getElementById('entropy-bar');
+        const val = document.getElementById('entropy-value');
+        if (!bar || !val) return;
+
+        // Entropy typically ranges from 0 (stable) to ~2.3 (unstable for 5 states)
+        const percentage = Math.min(100, (entropy / 2.32) * 100);
+        bar.style.width = `${percentage}%`;
+        bar.style.background = entropy > 1.2 ? 'var(--entropy-high)' : 'var(--entropy-low)';
+        bar.style.boxShadow = `0 0 10px ${entropy > 1.2 ? 'var(--entropy-high)' : 'var(--entropy-low)'}`;
+        val.textContent = entropy.toFixed(2);
     }
 
     /** 🎛️ UI STATE CONTROLLER */
@@ -161,43 +333,169 @@ class NeuralControlHub {
         this.elements.captureCanvas.width = 120;
         this.elements.captureCanvas.height = 120;
         ctx.drawImage(this.elements.video, 0, 0, 120, 120);
-        this.state.pendingBlob = this.elements.captureCanvas.toDataURL('image/jpeg', 0.5);
+        const base64 = this.elements.captureCanvas.toDataURL('image/jpeg', 0.5);
+        
+        this.state.pendingBlob = base64;
         this.state.pendingType = 'FACE';
         this.state.hasPendingData = true;
         this.updatePredictBtnState();
+
+        // 🛰️ REAL-TIME STREAMING TO BRIDGE (Vision + Behavior)
+        this.streamFrameToBridge(base64);
     }
 
-    /** 🎙️ AUDIO CAPTURE */
-    async toggleRecording() {
-        if (this.state.ui === 'RECORDING') {
-            this.state.mediaRecorder.stop();
-            this.setUIState('IDLE');
-            this.elements.micBtn.classList.remove('recording');
-            this.elements.indicators.record.textContent = 'IDLE';
-        } else {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                this.state.mediaRecorder = new MediaRecorder(stream);
-                this.state.audioChunks = [];
-                
-                this.state.mediaRecorder.ondataavailable = (e) => this.state.audioChunks.push(e.data);
-                this.state.mediaRecorder.onstop = () => {
-                    this.state.pendingBlob = new Blob(this.state.audioChunks, { type: 'audio/wav' });
-                    this.state.pendingType = 'VOICE';
-                    this.state.hasPendingData = true;
-                    this.updatePredictBtnState();
-                    stream.getTracks().forEach(t => t.stop());
-                };
-
-                this.state.mediaRecorder.start();
-                this.setUIState('RECORDING');
-                this.elements.micBtn.classList.add('recording');
-                this.elements.indicators.record.textContent = 'RECORDING';
-                this.setupAudioAnalysis(stream);
-            } catch (e) {
-                this.showError("Permission required to continue (Microphone)");
-            }
+    streamFrameToBridge(base64) {
+        if (this.state.ws && this.state.ws.readyState === WebSocket.OPEN) {
+            this.state.ws.send(JSON.stringify({
+                type: 'FRAME',
+                image: base64,
+                language: this.state.language,
+                focus_level: 1.0, 
+                behavior: this.sampleBehavior()
+            }));
         }
+    }
+
+    sampleBehavior() {
+        const now = Date.now();
+        const dt = (now - this.behavior.lastSample) / 1000;
+        
+        const speed = dt > 0 ? this.behavior.moves / dt : 0;
+        const jitter = this.calculateJitter();
+        
+        const metrics = {
+            mouse_speed: speed,
+            click_count: this.behavior.clicks,
+            jitter: jitter,
+            wpm: 0, 
+            backspaces: 0,
+            window_switches: 0
+        };
+
+        // Reset counters for next sample
+        this.behavior.clicks = 0;
+        this.behavior.moves = 0;
+        this.behavior.positions = [];
+        this.behavior.lastSample = now;
+        
+        return metrics;
+    }
+
+    calculateJitter() {
+        if (this.behavior.positions.length < 2) return 0;
+        let sum = 0;
+        for (let i = 1; i < this.behavior.positions.length; i++) {
+            const dx = this.behavior.positions[i].x - this.behavior.positions[i-1].x;
+            const dy = this.behavior.positions[i].y - this.behavior.positions[i-1].y;
+            sum += Math.sqrt(dx*dx + dy*dy);
+        }
+        return sum / this.behavior.positions.length;
+    }
+
+    /** 🎙️ SPEECH TO TEXT (STT) */
+    async toggleRecording() {
+        if (this.state.isListening) {
+            this.stopSTT();
+        } else {
+            this.startSTT();
+        }
+    }
+
+    startSTT() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            this.showError("Speech Recognition not supported in this browser.");
+            return;
+        }
+
+        this.recognition = new SpeechRecognition();
+        this.recognition.lang = this.state.language;
+        this.recognition.continuous = false;
+        this.recognition.interimResults = true;
+
+        this.recognition.onstart = () => {
+            this.state.isListening = true;
+            this.setUIState('RECORDING');
+            this.elements.micBtn.classList.add('recording');
+            this.elements.indicators.record.textContent = 'LISTENING...';
+        };
+
+        this.recognition.onresult = (event) => {
+            const transcript = Array.from(event.results)
+                .map(result => result[0])
+                .map(result => result.transcript)
+                .join('');
+            
+            if (event.results[0].isFinal) {
+                this.elements.chatInput.value = transcript;
+                this.submitChat();
+                this.stopSTT();
+            }
+        };
+
+        this.recognition.onerror = (e) => {
+            console.error("STT Error:", e);
+            this.stopSTT();
+        };
+
+        this.recognition.onend = () => {
+            this.stopSTT();
+        };
+
+        this.recognition.start();
+        
+        // Start visualizer
+        this.startAudioVisualizer();
+    }
+
+    stopSTT() {
+        if (this.recognition) {
+            this.recognition.stop();
+            this.recognition = null;
+        }
+        this.state.isListening = false;
+        this.setUIState('IDLE');
+        this.elements.micBtn.classList.remove('recording');
+        this.elements.indicators.record.textContent = 'IDLE';
+    }
+
+    async startAudioVisualizer() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            this.setupAudioAnalysis(stream);
+        } catch (e) {
+            console.warn("Visualizer failed:", e);
+        }
+    }
+
+    /** 🔊 TEXT TO SPEECH (TTS) */
+    speak(text) {
+        if (!window.speechSynthesis) return;
+        
+        // Stop any current speech
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = this.state.language;
+        
+        // Adjust tone based on emotion state
+        const state = document.body.className.split('-')[1] || 'neutral';
+        switch(state) {
+            case 'sad': utterance.pitch = 0.8; utterance.rate = 0.8; break;
+            case 'happy': utterance.pitch = 1.2; utterance.rate = 1.1; break;
+            case 'angry': utterance.pitch = 0.7; utterance.rate = 1.0; break;
+            case 'stressed': utterance.pitch = 1.0; utterance.rate = 1.2; break;
+            default: utterance.pitch = 1.0; utterance.rate = 1.0;
+        }
+
+        utterance.onstart = () => { this.state.isSpeaking = true; };
+        utterance.onend = () => { this.state.isSpeaking = false; };
+        
+        window.speechSynthesis.speak(utterance);
+    }
+
+    render() {
+        // ... (render logic)
     }
 
     /** 📁 FILE CAPTURE */
@@ -233,6 +531,7 @@ class NeuralControlHub {
                 formData.append('file', this.state.pendingBlob);
             }
             formData.append('mode', this.state.pendingType);
+            formData.append('language', this.state.language);
             
             const endpoint = this.state.pendingType === 'VOICE' ? '/predict/voice' : '/predict/face';
             const response = await fetch(`${this.config.api_base}${endpoint}`, {
@@ -252,7 +551,8 @@ class NeuralControlHub {
                 throw new Error("SERVER_FAIL");
             }
         } catch (e) {
-            this.showError("Something went wrong. Try again.");
+            console.error(e);
+            this.addChatMessage('AI', "I'm having trouble connecting to my neural core right now. One moment while I recalibrate.");
             this.setUIState('ERROR');
         } finally {
             this.state.hasPendingData = false;
@@ -339,9 +639,26 @@ class NeuralControlHub {
         this.elements.micBtn.addEventListener('click', () => this.toggleRecording());
         this.elements.predictBtn.addEventListener('click', () => this.executePrediction());
         
+        // Chat Input
+        this.elements.chatSend.addEventListener('click', () => this.submitChat());
+        this.elements.chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.submitChat();
+        });
+
+        const langToggle = document.getElementById('lang-toggle');
+        if (langToggle) langToggle.addEventListener('click', () => this.toggleLanguage());
+
         this.elements.dropZone.addEventListener('click', () => this.elements.fileInput.click());
         this.elements.fileInput.addEventListener('change', (e) => this.handleFileUpload(e.target.files[0]));
         
+        // Behavioral Tracking
+        window.addEventListener('mousemove', (e) => {
+            this.behavior.moves++;
+            this.behavior.positions.push({ x: e.clientX, y: e.clientY });
+            if (this.behavior.positions.length > 50) this.behavior.positions.shift();
+        });
+        window.addEventListener('click', () => this.behavior.clicks++);
+
         // Drag n Drop
         this.elements.dropZone.addEventListener('dragover', (e) => { e.preventDefault(); this.elements.dropZone.classList.add('active'); });
         this.elements.dropZone.addEventListener('dragleave', () => this.elements.dropZone.classList.remove('active'));
@@ -358,23 +675,135 @@ class NeuralControlHub {
         this.elements.results.emotion.textContent = "IDLE_STATE";
     }
 
-    addChatMessage(role, text) {
+    submitChat() {
+        const text = this.elements.chatInput.value.trim();
+        if (!text) return;
+        
+        this.addChatMessage('User', text);
+        this.elements.chatInput.value = '';
+        
+        if (this.state.ws && this.state.ws.readyState === WebSocket.OPEN) {
+            this.state.ws.send(JSON.stringify({
+                query: text,
+                language: this.state.language,
+                face_emotion: this.lastDetectedEmotion || 'Neutral',
+                behavior: this.sampleBehavior()
+            }));
+
+            // Show Thinking Indicator immediately
+            const feed = this.elements.chat;
+            const b = document.createElement('div');
+            b.className = 'bubble ai typing-bubble current-thinking';
+            b.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+            feed.appendChild(b);
+            feed.scrollTop = feed.scrollHeight;
+        }
+    }
+
+    async addChatMessage(role, text) {
+        const feed = this.elements.chat;
+        
+        // Remove thinking indicator if AI response arrives
+        if (role === 'AI') {
+            const thinking = feed.querySelector('.current-thinking');
+            if (thinking) thinking.remove();
+        }
+
         const b = document.createElement('div');
         b.className = `bubble ${role.toLowerCase()}`;
-        b.textContent = text;
-        this.elements.chat.appendChild(b);
-        this.elements.chat.scrollTop = this.elements.chat.scrollHeight;
+        
+        if (role === 'AI') {
+            b.classList.add('typing-bubble');
+            const typingIndicator = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+            b.innerHTML = typingIndicator;
+            feed.appendChild(b);
+            feed.scrollTop = feed.scrollHeight;
+            
+            // Artificial delay before typing starts
+            await new Promise(r => setTimeout(r, 600 + Math.random() * 600));
+            
+            b.innerHTML = '';
+            b.classList.remove('typing-bubble');
+            
+            // Character-by-character typing
+            let currentText = '';
+            for (const char of text) {
+                currentText += char;
+                b.textContent = currentText;
+                feed.scrollTop = feed.scrollHeight;
+                // Variable delay for human-like rhythm
+                await new Promise(r => setTimeout(r, 15 + Math.random() * 25));
+            }
+            
+            this.speak(text);
+        } else {
+            b.textContent = text;
+            feed.appendChild(b);
+        }
+        feed.scrollTop = feed.scrollHeight;
+    }
+
+    /** 🔊 TEXT TO SPEECH (TTS) ENHANCED */
+    speak(text) {
+        if (!window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        const voices = window.speechSynthesis.getVoices();
+        
+        let selectedVoice = null;
+        if (this.state.language.startsWith('ta')) {
+            selectedVoice = voices.find(v => v.lang.startsWith('ta')) || voices.find(v => v.lang.includes('India'));
+        } else {
+            selectedVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Premium'))) || voices[0];
+        }
+        
+        if (selectedVoice) utterance.voice = selectedVoice;
+        utterance.lang = this.state.language;
+        
+        const state = document.body.className.split('-')[1] || 'neutral';
+        const profiles = {
+            sad: { pitch: 0.85, rate: 0.85 },
+            happy: { pitch: 1.15, rate: 1.1 },
+            angry: { pitch: 0.75, rate: 1.0 },
+            stressed: { pitch: 1.0, rate: 1.25 },
+            neutral: { pitch: 1.0, rate: 1.0 }
+        };
+        
+        const p = profiles[state] || profiles.neutral;
+        utterance.pitch = p.pitch;
+        utterance.rate = p.rate;
+        window.speechSynthesis.speak(utterance);
     }
 
     setupThreeJS() {
         const sc = new THREE.Scene(), cm = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
         const rd = new THREE.WebGLRenderer({ canvas: this.elements.orb, alpha: true, antialias: true });
         rd.setSize(400, 400); cm.position.z = 2.5;
-        const mat = new THREE.MeshPhongMaterial({ color: '#00d4ff', wireframe: true, transparent: true, opacity: 0.3, emissive: '#00d4ff', emissiveIntensity: 0.4 });
-        const orb = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 4), mat);
-        sc.add(orb); sc.add(new THREE.AmbientLight(0x404040));
+        
+        // 🔮 NERVE ORB
+        this.orbMaterial = new THREE.MeshPhongMaterial({ color: '#00d4ff', wireframe: true, transparent: true, opacity: 0.3, emissive: '#00d4ff', emissiveIntensity: 0.4 });
+        const orb = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 4), this.orbMaterial);
+        sc.add(orb);
+        
+        // 🌌 NEURAL GRID
+        const grid = new THREE.GridHelper(10, 20, 0x00d4ff, 0x011627);
+        grid.rotation.x = Math.PI / 2;
+        grid.position.z = -2;
+        grid.material.transparent = true;
+        grid.material.opacity = 0.1;
+        sc.add(grid);
+
+        sc.add(new THREE.AmbientLight(0x404040));
         const lt = new THREE.PointLight(0xffffff, 1.5, 10); lt.position.set(2, 2, 5); sc.add(lt);
-        const anim = () => { requestAnimationFrame(anim); orb.rotation.y += 0.005; rd.render(sc, cm); };
+        
+        const anim = () => { 
+            requestAnimationFrame(anim); 
+            orb.rotation.y += 0.005; 
+            orb.rotation.x += 0.002;
+            grid.position.z += 0.001; if(grid.position.z > 0) grid.position.z = -2;
+            rd.render(sc, cm); 
+        };
         anim();
     }
 

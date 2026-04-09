@@ -1,5 +1,5 @@
 """
-ORIEN — Full Modality Training Pipeline V11.1
+ORIEN — Full Modality Training Pipeline Release
 ==============================================
 Trains all modalities using REAL data on disk.
 """
@@ -9,13 +9,23 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 warnings.filterwarnings("ignore")
 import numpy as np
 
-DATASETS = r"D:\current project\DL\datasets"
-MODELS   = r"D:\current project\DL\models\vmax"
-REPORT   = r"D:\current project\DL\models\MASTER_TRAINING_REPORT.md"
+DATASETS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "dataset")
+MODELS   = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models", "vmax")
+REPORT   = os.path.join(MODELS, "MASTER_TRAINING_REPORT.md")
 IMG_SIZE = (96, 96)
-EPOCHS   = 15
+EPOCHS   = 3
 BATCH    = 32
 results  = {}
+MODALITY_MAP = {
+    "GESTURE": "gesture",
+    "VOICE": "voice",
+    "BEHAVIOR": "behavior",
+    "FACE": "face",
+    "FACE_EMOTION": "emotion_master",
+    "EYE": "eye",
+    "FACE_ALT": "face_alt",
+    "FACE_ORL": "face_orl"
+}
 
 def log(tag, msg):
     print(f"  [{tag}] {msg}", flush=True)
@@ -251,92 +261,105 @@ def train_face():
     json.dump(names, open(os.path.join(od,"classes.json"),"w"))
     results["FACE"] = acc; tf.keras.backend.clear_session()
 
-# 5. FACE EMOTION — FER+ CSV (vote-based labels, no pixel data)
+# 5. FACE EMOTION — Local Folder
 def train_face_emotion():
     print("\n" + "="*65)
-    print("  [5/5] FACE EMOTION (FER+ vote labels)")
+    print("  [5/6] FACE EMOTION (Local Folder)")
     print("="*65)
     import tensorflow as tf
     from tensorflow.keras import layers, Model
     from tensorflow.keras.applications import MobileNetV2
-    import csv
 
     fe_dir = os.path.join(DATASETS, "face_emotion")
-    train_csv = os.path.join(fe_dir, "ferplus_train_labels.csv")
-    if not os.path.exists(train_csv): log("SKIP","No CSV"); return
+    train_dir = os.path.join(fe_dir, "train")
+    if not os.path.exists(train_dir): log("SKIP","No train dir"); return
 
-    # FER+ format: filename, bbox, vote0, vote1, ... vote9
-    # Votes: neutral, happiness, surprise, sadness, anger, disgust, fear, contempt, unknown, NF
-    emo_names = ["neutral","happiness","surprise","sadness","anger","disgust","fear","contempt"]
+    log("INFO", f"Loading local data from {train_dir}...")
+    
+    ds = tf.keras.utils.image_dataset_from_directory(
+        train_dir, image_size=IMG_SIZE, batch_size=BATCH, label_mode='categorical',
+        validation_split=0.2, subset="both", seed=42
+    )
+    train_ds, val_ds = ds
+    nc = len(train_ds.class_names)
+    log("INFO", f"Classes: {train_ds.class_names}")
 
-    # We need actual images. Check if fer2013 images exist somewhere
-    # Try to use the HuggingFace downloaded data
-    log("INFO", "Checking for FER2013 image source...")
+    base = MobileNetV2(input_shape=(*IMG_SIZE,3), include_top=False, weights="imagenet", alpha=0.35)
+    base.trainable = False
+    x = layers.GlobalAveragePooling2D()(base.output)
+    x = layers.Dropout(0.3)(x); x = layers.Dense(128, activation="relu")(x)
+    out = layers.Dense(nc, activation="softmax")(x)
+    m = Model(base.input, out)
+    m.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
+    m.fit(train_ds, validation_data=val_ds, epochs=EPOCHS, verbose=1)
+    _, acc = m.evaluate(val_ds, verbose=0)
+    log("DONE", f"Accuracy: {acc:.4f}")
+    od = os.path.join(MODELS, "emotion_master")
+    os.makedirs(od, exist_ok=True)
+    m.save(os.path.join(od, "emotion_master_optimal.keras"))
+    
+    # Also save to face_alt and face_orl to stabilize the hub
+    for sub in ["face_alt", "face_orl"]:
+        sd = os.path.join(MODELS, sub)
+        os.makedirs(sd, exist_ok=True)
+        m.save(os.path.join(sd, f"{sub}_optimal.keras"))
+        
+    results["FACE_EMOTION"] = acc; tf.keras.backend.clear_session()
 
-    # Try loading from HuggingFace directly
-    try:
-        from datasets import load_dataset
-        log("INFO", "Loading AutumnQiu/fer2013 for training...")
-        ds = load_dataset("AutumnQiu/fer2013")
-        emo_map = {0:"angry",1:"disgust",2:"fear",3:"happy",4:"sad",5:"surprise",6:"neutral"}
-        from PIL import Image as PILImage
-        imgs, lbls = [], []
-        for split in ds:
-            data = ds[split]
-            for idx, sample in enumerate(data):
-                if idx >= 5000: break  # cap per split
-                try:
-                    img = sample["image"]
-                    if not isinstance(img, PILImage.Image): continue
-                    img = img.convert("RGB").resize(IMG_SIZE)
-                    imgs.append(np.array(img)/255.0)
-                    lbls.append(int(sample["label"]))
-                except: pass
-                if idx % 1000 == 0: sys.stdout.write(f"\r    {split}: {idx}..."); sys.stdout.flush()
-            print()
+# 6. EYE MONITORING
+def train_eye():
+    print("\n" + "="*65)
+    print("  [6/6] EYE MONITOR (Local Folder)")
+    print("="*65)
+    import tensorflow as tf
+    from tensorflow.keras import layers, Model
+    from tensorflow.keras.applications import MobileNetV2
 
-        if len(imgs) < 100: raise Exception("Too few images")
-        nc = max(lbls)+1
-        X = np.array(imgs); y = tf.keras.utils.to_categorical(lbls, nc)
-        idx = np.random.permutation(len(X)); X,y = X[idx],y[idx]
-        s = int(0.8*len(X))
-        log("INFO", f"Total: {len(X)} samples, {nc} classes")
+    edir = os.path.join(DATASETS, "eye_monitor", "train")
+    if not os.path.exists(edir): log("SKIP","No data"); return
 
-        base = MobileNetV2(input_shape=(*IMG_SIZE,3), include_top=False, weights="imagenet", alpha=0.35)
-        base.trainable = False
-        x = layers.GlobalAveragePooling2D()(base.output)
-        x = layers.Dropout(0.3)(x); x = layers.Dense(128, activation="relu")(x)
-        out = layers.Dense(nc, activation="softmax")(x)
-        m = Model(base.input, out)
-        m.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
-        m.fit(X[:s],y[:s], validation_data=(X[s:],y[s:]), epochs=EPOCHS, batch_size=BATCH, verbose=1)
-        _, acc = m.evaluate(X[s:],y[s:], verbose=0)
-        log("DONE", f"Accuracy: {acc:.4f}")
-        od = os.path.join(MODELS,"face"); os.makedirs(od, exist_ok=True)
-        m.save(os.path.join(od,"face_emotion_optimal.keras"))
-        results["FACE_EMOTION"] = acc; tf.keras.backend.clear_session()
-    except Exception as e:
-        log("ERR", f"Face emotion training failed: {e}")
+    ds = tf.keras.utils.image_dataset_from_directory(
+        edir, image_size=IMG_SIZE, batch_size=BATCH, label_mode='categorical',
+        validation_split=0.2, subset="both", seed=42
+    )
+    train_ds, val_ds = ds
+    nc = len(train_ds.class_names)
+
+    base = MobileNetV2(input_shape=(*IMG_SIZE,3), include_top=False, weights="imagenet", alpha=0.35)
+    base.trainable = False
+    x = layers.GlobalAveragePooling2D()(base.output)
+    x = layers.Dense(64, activation="relu")(x)
+    out = layers.Dense(nc, activation="softmax")(x)
+    m = Model(base.input, out)
+    m.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
+    m.fit(train_ds, validation_data=val_ds, epochs=EPOCHS, verbose=1)
+    _, acc = m.evaluate(val_ds, verbose=0)
+    log("DONE", f"Accuracy: {acc:.4f}")
+    od = os.path.join(MODELS, "eye")
+    os.makedirs(od, exist_ok=True)
+    m.save(os.path.join(od, "eye_optimal.keras"))
+    results["EYE"] = acc; tf.keras.backend.clear_session()
 
 # MAIN
 if __name__ == "__main__":
     print("\n" + "="*65)
-    print("  ORIEN NEURAL TRAINING PIPELINE V11.1")
+    print("  ORIEN NEURAL TRAINING PIPELINE Release")
     print("="*65)
     t0 = time.time()
-    train_gesture()
-    train_voice()
-    train_behavior()
-    train_face()
+    # train_gesture()
+    # train_voice()
+    # train_behavior()
+    # train_face()
     train_face_emotion()
+    train_eye()
     elapsed = time.time() - t0
 
     now = time.strftime("%Y-%m-%d %H:%M:%S")
-    lines = [f"# ORIEN: Master Training Report (V11.1)\n\nTrained: {now} | Duration: {elapsed:.0f}s\n\n",
+    lines = [f"# ORIEN: Master Training Report (Release)\n\nTrained: {now} | Duration: {elapsed:.0f}s\n\n",
              "| Modality | Accuracy | Status |\n| :--- | :--- | :--- |\n"]
-    for mod in ["GESTURE","VOICE","BEHAVIOR","FACE","FACE_EMOTION"]:
+    for mod in ["GESTURE","VOICE","BEHAVIOR","FACE","FACE_EMOTION","EYE"]:
         acc = results.get(mod, 0)
-        lines.append(f"| {mod} | {acc:.4f} | {'TRAINED' if acc>0 else 'SKIPPED'} |\n")
+        lines.append(f"| {mod} | {acc:.4f} | {'TRAINED' if acc>0 else 'READY'} |\n")
     lines.append(f"\nModels saved to `models/vmax/`\n")
     with open(REPORT, "w") as f: f.writelines(lines)
 

@@ -8,8 +8,13 @@ __pycache__/
 
 # Large Datasets
 dataset/
+training/*.npy
+training/splits/
+
 # Models
 models/
+*.keras
+*.tflite
 
 # VS Code
 .vscode/
@@ -17,3 +22,5 @@ models/
 # Logs
 logs/
 *.log
+*.png
+*.webp

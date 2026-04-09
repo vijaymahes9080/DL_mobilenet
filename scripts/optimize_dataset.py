@@ -3,7 +3,7 @@ from pathlib import Path
 from PIL import Image
 from threading import Lock
 
-# 🛠️ ORIEN: Neural Data Optimizer [V4.3-ELITE SPEED]
+# 🛠️ ORIEN: Neural Data Optimizer
 ROOT = Path(__file__).parent.parent.absolute()
 DATASET_ROOT = ROOT / "dataset"
 EXTS = (".jpg", ".jpeg", ".png", ".bmp", ".pgm")
@@ -96,7 +96,7 @@ def clean_modality(name, path):
 
 def run_optimization():
     print("\n" + "="*60)
-    print(" ORIEN: Neural Data Synergy Optimization [V4.3 PARALLEL]")
+    print(" ORIEN: Neural Data Synergy Optimization")
     print("="*60)
     # Using the standardized modality-to-folder mapping from local_trainer
     paths = { 

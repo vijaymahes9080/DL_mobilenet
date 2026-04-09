@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════
-#  ORIEN Neural Crystal V7.8 — Python Dependencies
+#  ORIEN Neural Crystal Release — Python Dependencies
 # ═══════════════════════════════════════════════
 
 # ── Core Web Framework ──────────────────────────

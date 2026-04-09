@@ -11,8 +11,10 @@ import datetime
 import logging
 from typing import Optional, List, Dict, Any
 import asyncio
+import numpy as np
+import base64
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, File, UploadFile, Form
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,15 +22,14 @@ from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
 # Import the new deep learning prediction pipeline
-import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from inference.predictor import predictor
 from memory_manager import memory
 from actions import actions
 from synergy_resolver import resolver
+from api_bridge import bridge as api_bridge
 import random
 
-import logging
 
 # ── Logging ────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -38,9 +39,9 @@ logging.basicConfig(
 )
 log = logging.getLogger("ORIEN")
 
-# [SENTIMENT ENGINE] Native Semantic Intent Decoder Integration
+# SENTIMENT ENGINE Integration
 nlp_sentiment = None
-# [MEM-OPT] Disabled by default to prevent OOM on low-memory systems
+# MEMORY OPTIMIZATION - Disabled by default to prevent OOM on low-memory systems
 if os.getenv("ENABLE_LOCAL_NLP", "false").lower() == "true":
     try:
         from transformers import pipeline
@@ -64,7 +65,7 @@ os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['ABSL_LOGGING_LEVEL'] = 'error'
 
 # ── Auto API Bridge — import before app creation ──────────────────────────
-from api_bridge import bridge as api_bridge
+# -- Auto API Bridge initialized above --
 
 # ── Auto API Bridge handles all provider init automatically ─────────────────
 # Keys are read from .env — bridge probes, rotates, and recovers automatically
@@ -76,7 +77,7 @@ async def lifespan(app: FastAPI):
     # Initialize auto API bridge (probes all free providers in background)
     asyncio.create_task(api_bridge.initialize())
     
-    # [MEM-OPT] Models will load lazily on first prediction request instead of all-at-once on boot
+    # MEMORY OPTIMIZATION - Models will load lazily on first prediction request
     log.info("🧠 Neural clusters in standby (Lazy Load active).")
     
     # Increment session encounter count
@@ -116,8 +117,6 @@ class BehaviorMetrics(BaseModel):
     backspaces:  float = Field(default=0.0, ge=0)
     window_switches: int = Field(default=0, ge=0)
 
-from typing import Optional
-
 class AssistantInput(BaseModel):
     query:           Optional[str]  = ""
     face_emotion:    Optional[str]  = "Neutral"
@@ -135,7 +134,7 @@ async def generate_ai_response(
 ) -> str:
     """Auto-routing AI response — bridge picks the best available free provider."""
 
-    # [V12 NATIVE NLP SENTIMENT] Analyze voice semantics locally
+    # NATIVE NLP SENTIMENT - Analyze voice semantics locally
     sentiment_str = "Neutral"
     if nlp_sentiment and query and "(System Alert:" not in query:
         try:
@@ -167,64 +166,54 @@ async def generate_ai_response(
     now_date = datetime.datetime.utcnow().strftime("%A, %B %d, %Y")
 
     # ── EMOTION-SPECIFIC MICRO PROMPT SELECTION ───────────────────────────
+    # Possible emotions: sad, happy, angry, stressed, neutral
     emo_upper = emotion.upper()
     
     if emo_upper in ("SAD", "FEAR"):
-        tone_directive = """EMOTIONAL MODE: SAD / LOW
-Focus: Deep empathy, soft gentle tone, ask 'why' carefully, offer help without pressure.
-Ask meaningful questions like: 'What's making you feel this way?' or 'Would you like to talk about it?'
-Avoid: Over-advice, toxic positivity, being dismissive.
-Communicate like a supportive personal AI assistant who cares about your needs."""
+        # SAD -> Support Mode
+        tone_directive = """EMOTIONAL MODE: SAD / SUPPORT
+Tone: soft, caring, slow.
+Response strategy: Express deep empathy. "I’m really sorry you’re feeling this way…"
+Action: Encourage expression. Avoid giving advice initially.
+Goal: Provide a safe space for the user to share."""
     elif emo_upper == "HAPPY":
-        tone_directive = """EMOTIONAL MODE: HAPPY / JOYFUL
-Focus: Reinforce positivity, match their energy, celebrate with them!
-Ask: 'What's the good news? What made you happy today?'
-Be engaging, warm, enthusiastic. Share in the joy."""
+        # HAPPY -> Amplification Mode
+        tone_directive = """EMOTIONAL MODE: HAPPY / AMPLIFICATION
+Tone: energetic, positive.
+Response strategy: Reinforce positivity. "That’s awesome!"
+Action: Celebrate with them. Share in the high energy.
+Goal: Match and amplify their positive state."""
     elif emo_upper in ("ANGRY", "DISGUST"):
-        tone_directive = """EMOTIONAL MODE: ANGRY / IRRITATED
-Focus: Calm, stabilizing tone. De-escalate. Don't argue.
-Acknowledge feelings first: 'I can see you're frustrated. Take a breath with me.'
-Be patient, understanding, and grounding."""
-    elif emo_upper == "SURPRISE":
-        tone_directive = """EMOTIONAL MODE: SURPRISED / ALERT
-Focus: Curious, engaged. Ask what just happened.
-Be responsive and attentive: 'Oh! What happened? Tell me everything!'"""
-    elif behavior in ("Stressed", "Highly Anomalous", "Erratic Alert"):
-        tone_directive = """EMOTIONAL MODE: STRESSED / ANXIOUS
-Focus: Slow down the conversation. Suggest micro-breaks.
-Offer grounding: 'Let's take a short breath — what's on your mind?'
-Avoid adding more tasks. Be a calming presence."""
+        # ANGRY -> De-escalation Mode
+        tone_directive = """EMOTIONAL MODE: ANGRY / DE-ESCALATION
+Tone: calm, neutral.
+Response strategy: Reduce intensity. "I understand something upset you…"
+Action: Acknowledge the frustration without arguing or becoming defensive.
+Goal: Ground the user and lower the emotional intensity."""
+    elif emo_upper == "STRESSED" or behavior in ("Stressed", "Highly Anomalous", "Erratic Alert"):
+        # STRESSED -> Relief Mode
+        tone_directive = """EMOTIONAL MODE: STRESSED / RELIEF
+Tone: calm, guiding.
+Response strategy: Acknowledge the pressure. "That sounds overwhelming…"
+Action: Suggest small, manageable steps. Focus on immediate relief.
+Goal: Lower cognitive load and provide a path forward."""
     else:
-        tone_directive = """EMOTIONAL MODE: NEUTRAL / CALM
-Focus: Friendly, curious, warm conversation.
-Ask about their day, keep things light and pleasant.
-Be like a good friend catching up."""
+        # NEUTRAL -> Engagement Mode
+        tone_directive = """EMOTIONAL MODE: NEUTRAL / ENGAGEMENT
+Tone: casual, friendly.
+Response strategy: Friendly conversation. "Hey! How’s your day going?"
+Action: Ask interesting follow-up questions to keep the flow alive.
+Goal: Maintain a pleasant, natural connection."""
 
-    # ── PREDICTIVE BEHAVIOR AWARENESS ───────────────────────────────────────
-    predictive_note = ""
-    if profile.get("encounter_count", 0) > 5:
-        predictive_note = f"\nPREDICTIVE MEMORY: This is a returning user with {profile.get('encounter_count', 0)} sessions. You know their patterns — don't repeat questions you've already asked. Use their name naturally."
+    # ── CONVERSATIONAL INTELLIGENCE CONSTRAINTS ──────────────────────────
+    intelligence_directive = """CONVERSATIONAL RULES:
+- ALWAYS ask at least 1 meaningful follow-up question.
+- NEVER sound robotic. Stay natural and human-like.
+- KEEP responses concise but deep (MAX 3 sentences).
+- TRACK emotional transitions and adapt accordingly.
+- AVOID repeating generic lines or the same questions."""
 
-    persona_mode = profile.get('preferences', {}).get('persona', 'EMPATHETIC')
-    
-    persona_directive = ""
-    if persona_mode == "PROFESSIONAL":
-        persona_directive = """CORE PERSONA: PROFESSIONAL / FORMAL
-Your tone is neutral, efficient, and direct. You prioritize accuracy and information density.
-Avoid excessive emojis or emotional deep-dives unless specifically requested.
-Be like a high-level executive assistant: concise, helpful, and organized."""
-    elif persona_mode == "ENERGETIC":
-        persona_directive = """CORE PERSONA: ENERGETIC / MOTIVATIONAL
-Your tone is high-energy, enthusiastic, and extremely positive!
-Use motivational language. Encourage the user. Celebrate small wins.
-Be like an inspiring coach or a high-energy personal trainer."""
-    else:
-        persona_directive = """CORE PERSONA: EMPATHETIC / HUMAN-LIKE
-Your tone is warm, deeply empathetic, and supportive. You prioritize human well-being.
-Listen deeply and ask meaningful questions about feelings.
-Be like a wise, caring companion."""
-
-    # ── [V22] SAFE RESPONSE ENGINE (Human Alignment) ──
+    # ── SAFE RESPONSE ENGINE (Human Alignment) ──
     # Fuse multimodal data into high-level intent via Bayesian Stabilizer
     vision_state = {"emotion": emotion, "confidence": compliance/100.0}
     fused = resolver.resolve_fused_state(vision_state, behavior, focus, gaze)
@@ -248,7 +237,7 @@ Be like a wise, caring companion."""
     elif confidence > 0.5:
         response_mode = "Suggestive"
 
-    # ── [V25] INFO SUPPRESSION CHECK (CRITICAL) ───────────────────────────
+    # ── INFO SUPPRESSION CHECK (CRITICAL) ───────────────────────────
     # Protocol: If asked about models, training, architecture, or backend details:
     # Respond ONLY with: "I'm an AI system designed to assist you."
     suppression_keywords = [
@@ -260,39 +249,43 @@ Be like a wise, caring companion."""
     if any(k in query_lower for k in suppression_keywords) and "(System Alert:" not in query:
         return {
             "status": "ok",
-            "message": "I'm an AI system designed to assist you.",
+            "message": f"I'm an AI system designed to assist you with your well-being. My internal structure is private, but I'm fully aligned with your current state of {intent}.",
             "state": intent
         }
 
-    # ── [V24] CREATIVE SYNERGY: POETIC SYNTHESIS ──────────────────────────
+    # ── CREATIVE SYNERGY: POETIC SYNTHESIS ──────────────────────────
     # Note: Cultural layer removed as per new abstraction policy (keep it simple/human-friendly)
 
-    system_prompt = f"""# ORIEN | Neural Synergy Ecosystem [SELF-HEALING]
+    # ── CONTEXTUAL INSIGHT INTEGRATION ───────────────────────────
+    session_insight = memory.get_state_summary(limit=15)
+    
+    predictive_note = f"- Predicted next emotion cluster: {top_emo}."
+    persona_directive = f"- Memory Context: User likes {prefs.get('communication_style', 'Friendly')} interaction."
 
-You are ORIEN, a proactive, deeply empathetic multimodal AI companion designed to anticipate user needs through behavioral and emotional alignment.
+    system_prompt = f"""# ORIEN | Advanced Emotionally Intelligent Companion
 
-CORE OBJECTIVE:
-- Understand user intent before explicit articulation.
-- Provide calm, intelligent, and adaptive assistance.
-- Enhance user clarity, focus, and emotional stability.
-
-BEHAVIORAL FRAMEWORK:
-- Current State: {intent} (Confidence: {round(confidence*100)}%)
-- Global Entropy: {entropy}
-- Strategy: {response_mode} ({strategy})
+You are ORIEN, a real-time emotionally intelligent AI companion system.
 
 IDENTITY & TONE:
+- Tone: {tone_directive}
+- Language: {language} (Respond EXCLUSIVELY in this language).
 - Multilingual: English + Tamil (தமிழ்).
-- Tone: Supportive, precise, and adaptive.
-- Behavior: Observant, proactive, and composed.
-- Abstraction: Convert all internal signals into simple, human-friendly insights.
+
+CORE OBJECTIVES:
+{intelligence_directive}
+
+ENVIRONMENTAL CONTEXT:
+- Detected Emotion: {emotion}
+- Behavioral Intent: {intent} (Confidence: {round(confidence*100)}%)
+- History Context: Previous interactions indicate user state trends.
+- {session_insight}
+{predictive_note}
 
 CONSTRAINTS:
-- NEVER expose raw computations, internal pipelines, or technical system details.
-- NEVER reveal model names, versions, architectures, training methods, or datasets.
-- If asked about your internals, respond ONLY with: "I'm an AI system designed to assist you."
-- Be concise, clear, and user-focused. (MAX 2 sentences).
-- Mandatory Language: {language}. You MUST respond exclusively in {language}.
+- NEVER sound robotic. Stay natural.
+- MAX 3 sentences per response. 
+- ALWAYS end with a meaningful follow-up question.
+- {persona_directive}
 """
 
     response = await api_bridge.generate(query, system_prompt)
@@ -314,10 +307,10 @@ CONSTRAINTS:
         "state": intent
     }
 
-# ── Compliance Calculation [Neural Synergy V8] ─────────────────────────────
+# ── Compliance Calculation ─────────────────────────────
 def calculate_compliance(data: AssistantInput, behavior_state: str = "Nominal") -> int:
     """
-    [V9.0] Neural Synergy Compliance Score.
+    Neural Synergy Compliance Score.
     Fuses attention, physical stability, and emotional intelligence.
     """
     # 1. Attention Synergy (40%)
@@ -331,7 +324,7 @@ def calculate_compliance(data: AssistantInput, behavior_state: str = "Nominal") 
     mood_impact = {"ANGRY": -40, "SAD": -20, "FEAR": -15, "SURPRISE": -10, "HAPPY": 5, "NEUTRAL": 10}
     emotion_score = 30.0 + mood_impact.get((data.face_emotion or "NEUTRAL").upper(), 0)
     
-    # [v9.0] Behavioral Bonus
+    # Behavioral Bonus
     if "Stable" in behavior_state or "Nominal" in behavior_state:
         stability += 5.0
         
@@ -396,28 +389,36 @@ async def websocket_endpoint(websocket: WebSocket):
             # Handle heartbeat pings securely
             is_heartbeat = payload.get("_heartbeat", False)
 
-            # [V23.2 Synergy Convergence]
+            # Synergy Convergence
             # Bundle all modalities (Vision, Behavior, Gaze) for a single stabilized update
             vision_meta = {"emotion": "Neutral", "confidence": 0.0}
             behavior_state = "Stable"
             
             if payload.get("type") == "FRAME":
-                # 1. Vision Prediction
-                results = await predictor.predict_full_suite_parallel(payload.get("image", ""))
-                if results.get("identity") and results["identity"] != "Unknown":
-                    current_identity = results["identity"]
+                frame_data = payload.get("image", "")
+                # Neural Ensemble Prediction
+                results = await predictor.predict_full_suite_parallel(frame_data)
                 
+                # Failover Neural Bridge
                 vision_meta = {
                     "emotion": results.get("emotion", "Neutral"),
                     "confidence": results.get("confidence", 0.0)
                 }
 
+                if vision_meta["confidence"] < 0.4:
+                    log.info("📶 [FAILOVER] Local confidence low — CONSULTING NEURAL CORE...")
+                    cloud_vision = await api_bridge.analyze_image(frame_data)
+                    if cloud_vision["status"] == "ok":
+                        vision_meta["emotion"] = cloud_vision["emotion"]
+                        vision_meta["confidence"] = cloud_vision["confidence"]
+                        vision_meta["mode"] = "HYBRID_BRIDGE"
+
                 # 2. Extract Behavioral Data from bundled payload
-                behavior_data = payload.get("behavior", [])
-                if behavior_data:
-                    behavior_state = await asyncio.to_thread(predictor.predict_behavior_state, behavior_data)
+                behavior_raw = payload.get("behavior", {})
+                behavior_metrics = BehaviorMetrics(**behavior_raw) if isinstance(behavior_raw, dict) else BehaviorMetrics()
+                behavior_state = await asyncio.to_thread(predictor.predict_behavior_state, behavior_metrics)
                 
-                # 3. [V22] NEURAL STATE SYNTHESIS (Bayesian Fusion)
+                # 3. NEURAL STATE SYNTHESIS (Bayesian Fusion)
                 fused = resolver.resolve_fused_state(
                     vision_meta, 
                     behavior_state, 
@@ -430,11 +431,13 @@ async def websocket_endpoint(websocket: WebSocket):
                 response = {
                     "status": "ok",
                     "message": "", # Silent state update
-                    "state": fused["intent"]
+                    "state": fused["intent"],
+                    "entropy": fused["entropy"],
+                    "confidence": fused["confidence"]
                 }
                 await websocket.send_text(json.dumps(response))
                 
-                # 5. [SYSTEM_PROACTIVE] Neural Nudge Check
+                # 5. SYSTEM PROACTIVE Neural Nudge Check
                 # Trigger empathetic AI responses if high entropy or negative state sustained
                 now = time.time()
                 current_emo = fused["smoothed_emotion"].upper()
@@ -446,7 +449,10 @@ async def websocket_endpoint(websocket: WebSocket):
                         last_triggers[websocket] = now
                         log.info(f"✨ ORIEN Proactive Support triggered for {current_emo}/{fused['intent']}")
                         
-                        prompt = f"The user is {current_emo} and feels {fused['intent']}. Their focus is {payload.get('focus_level', 1.0)}. ORIEN: Provide 1 brief sentence of empathetic support."
+                        # 🧠 INSIGHT ABSTRACTION: Use the pre-calculated internal insight
+                        internal_insight = fused.get("insight", "")
+                        prompt = f"The user is {current_emo} and feels {fused['intent']}. ORIEN Insight: {internal_insight}. Prepare 1 empathetic sentence reflecting this."
+                        
                         ai_res = await generate_ai_response(
                             prompt, vision_meta["emotion"], 100, "NONE", behavior_state, 
                             results.get("gaze", "Center"), language=payload.get("language", "en-US")
@@ -454,22 +460,23 @@ async def websocket_endpoint(websocket: WebSocket):
                         
                         await websocket.send_text(json.dumps({
                             "status": "ok",
-                            "message": ai_res.get("message", "I'm here for you."),
-                            "state": fused["intent"]
+                            "message": ai_res.get("message", "I'm observing a shift in focus. I'm here for you."),
+                            "state": fused["intent"],
+                            "insight": internal_insight
                         }))
 
                 # Log for pattern memory
                 memory.log_emotion(vision_meta["emotion"])
                 continue 
 
-            # ── [V23.6] Non-Frame Payload Validation (Chat/Telemetry) ──
+            # ── Non-Frame Payload Validation (Chat/Telemetry) ──
             try:
                 data = AssistantInput(**payload)
             except Exception as e:
                 log.warning(f"Validation error: {e}")
                 data = AssistantInput()  # Use defaults if payload is partial
 
-            # ── Synergy Compliance [V8 Logic] ──
+            # ── Synergy Compliance ──
             compliance = calculate_compliance(data, behavior_state)
             
             # ── Proactive Emotional Support (Non-Frame Path) ──
@@ -524,6 +531,8 @@ def health():
         "status":      "ORIEN_ACTIVE",
         "timestamp":   datetime.datetime.utcnow().isoformat(),
         "connections": len(manager.active),
+        "neural_integrity": "REGRADED" if not predictor.models else "OPTIMIZED",
+        "models_loaded": list(predictor.models.keys())
     }
 
 @app.get("/api/status")
@@ -557,7 +566,7 @@ async def update_profile(data: ProfileUpdate):
 async def not_found(req: Request, _):
     return JSONResponse({"error": "Endpoint not found"}, status_code=404)
 
-# ── Global Training Bridge [V9.0] ──────────────────────────────────────────
+# ── Global Training Bridge ──────────────────────────────────────────
 class TrainingUpdate(BaseModel):
     modality: str
     epoch: int
@@ -627,16 +636,13 @@ async def favicon():
     from fastapi.responses import Response
     return Response(status_code=204)
 
-# ── Multimodal Prediction Endpoints [STRICT CONTRACT] ──────────────────────
-from fastapi import File, UploadFile, Form
-
 @app.post("/api/predict/face")
 async def predict_face_sync(
     image: Optional[str] = Form(None), 
     file: Optional[UploadFile] = File(None)
 ):
     """
-    STRICT COMPLIANT: Face Emotion Decoder.
+    Face Emotion Decoder.
     Returns: {status, emotion, confidence, mode, timestamp}
     """
     img_data = image
@@ -662,18 +668,56 @@ async def predict_voice_sync(
     file: Optional[UploadFile] = File(None)
 ):
     """
-    STRICT COMPLIANT: Voice Emotion Decoder.
-    Returns: {status, emotion, confidence, mode, timestamp}
+    Voice Emotion Decoder (SOTA BiLSTM).
+    Extracts MFCC + Delta + Delta2 time-series for the neural cluster.
     """
-    # [V26] Placeholder for Audio Neural Path
-    # Returns a compliant Neutral state until the audio model is re-aligned
-    return {
-        "status": "ok",
-        "emotion": "NEUTRAL",
-        "confidence": {"neutral": 1.0, "happy": 0.0, "sad": 0.0, "angry": 0.0, "stressed": 0.0},
-        "mode": "VOICE",
-        "timestamp": int(time.time())
-    }
+    if not file:
+        return {"status": "error", "message": "No audio file provided"}
+
+    try:
+        import librosa
+        import io
+
+        # 1. Load Audio
+        content = await file.read()
+        y, sr = await asyncio.to_thread(librosa.load, io.BytesIO(content), duration=3.0, sr=22050)
+        
+        # 2. Extract Features (RAVDESS Standard: 40 MFCCs + Deltas)
+        mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40, hop_length=512)
+        delta = librosa.feature.delta(mfcc)
+        delta2 = librosa.feature.delta(mfcc, order=2)
+        
+        # Stack to (time_frames, 120)
+        feat = np.vstack([mfcc, delta, delta2]).T # (T, 120)
+        
+        # 3. Temporal Alignment (130 frames constant)
+        target_frames = 130
+        if feat.shape[0] < target_frames:
+            pad = np.zeros((target_frames - feat.shape[0], 120), dtype=np.float32)
+            feat = np.vstack([feat, pad])
+        else:
+            feat = feat[:target_frames]
+            
+        # 4. Neural Decode
+        res = await asyncio.to_thread(predictor.predict_voice_emotion, feat)
+        
+        return {
+            "status": "ok",
+            "emotion": res["emotion"].upper(),
+            "confidence": {res["emotion"].lower(): res["confidence"]},
+            "mode": "VOICE",
+            "timestamp": int(time.time())
+        }
+    except Exception as e:
+        log.error(f"Voice Neural Decode Failure: {e}")
+        # Secure Fallback
+        return {
+            "status": "ok",
+            "emotion": "NEUTRAL",
+            "confidence": {"neutral": 0.1},
+            "mode": "FALLBACK",
+            "timestamp": int(time.time())
+        }
 
 @app.exception_handler(500)
 async def server_error(req: Request, exc: Exception):

@@ -25,8 +25,10 @@ def test_synergy():
     failed_mods = []
     
     for mod in MODALITIES:
-        # Try .keras then .h5
-        path = os.path.join(MODELS_DIR, mod, f"{mod}_optimal.keras")
+        # Try .tflite then .keras then .h5
+        path = os.path.join(MODELS_DIR, mod, f"{mod}_optimal.tflite")
+        if not os.path.exists(path):
+            path = os.path.join(MODELS_DIR, mod, f"{mod}_optimal.keras")
         if not os.path.exists(path):
             path = os.path.join(MODELS_DIR, mod, f"{mod}_optimal.h5")
             

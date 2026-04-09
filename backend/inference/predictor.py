@@ -18,7 +18,7 @@ log = logging.getLogger("ORIEN.Inference")
 
 class NeuralPredictor:
     """
-    [SOTA] Optimized Neural Predictor.
+    Optimized Neural Predictor.
     """
     EMOTION_CLASSES = ['Angry', 'Disgust', 'Fear', 'Happy', 'Neutral', 'Sad', 'Surprise']
     GESTURE_CLASSES = ['call', 'dislike'] # Synced with models/vmax/gesture/classes.json
@@ -26,6 +26,7 @@ class NeuralPredictor:
     def __init__(self):
         self.models = {}
         self.model_shapes = {}
+        self.mean_std = {} # For normalization
         self.behavior_history = []
         self._lock = threading.Lock()
         self._gpu_active = False
@@ -57,12 +58,54 @@ class NeuralPredictor:
         with self._lock:
             if modality in self.models: return True
             base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            path = os.path.join(base, "models", "vmax", modality, f"{modality}_optimal.keras")
-            if os.path.exists(path):
+            if modality == "behavior":
+                path = os.path.join(base, "models", "vmax", modality, f"{modality}_optimal.joblib")
+                if os.path.exists(path):
+                    try:
+                        import joblib
+                        self.models[modality] = {"type": "KERAS", "core": joblib.load(path)}
+                        log.info(f"✅ BEHAVIOR Neural Path Established (Joblib Elite).")
+                        return True
+                    except Exception as e:
+                        log.error(f"Err {modality}: {e}")
+                return False
+
+            # Support for both Keras and TFLite optimized cores
+            keras_path = os.path.join(base, "models", "vmax", modality, f"{modality}_optimal.keras")
+            tflite_path = os.path.join(base, "models", "vmax", modality, f"{modality}_optimal.tflite")
+            
+            if os.path.exists(tflite_path):
                 try:
-                    m = tf.keras.models.load_model(path, compile=False)
-                    self.models[modality] = m
+                    from tensorflow import lite
+                    interpreter = lite.Interpreter(model_path=tflite_path)
+                    interpreter.allocate_tensors()
+                    self.models[modality] = {
+                        "type": "TFLITE",
+                        "core": interpreter,
+                        "input": interpreter.get_input_details(),
+                        "output": interpreter.get_output_details()
+                    }
+                    log.info(f"⚡ {modality.upper()} Neural Path Established (TFLite Optimized).")
+                    return True
+                except Exception as e:
+                    log.error(f"Err TFLite {modality}: {e}")
+
+            if os.path.exists(keras_path):
+                try:
+                    m = tf.keras.models.load_model(keras_path, compile=False)
+                    self.models[modality] = {"type": "KERAS", "core": m}
                     self.model_shapes[modality] = m.input_shape
+                    
+                    # Load normalization artifacts for voice
+                    if modality == "voice_cloud":
+                        try:
+                            m_path = os.path.join(base, "models", "vmax", modality, "voice_mean.npy")
+                            s_path = os.path.join(base, "models", "vmax", modality, "voice_std.npy")
+                            if os.path.exists(m_path) and os.path.exists(s_path):
+                                self.mean_std["voice"] = (np.load(m_path), np.load(s_path))
+                                log.info(f"📊 Voice Normalization Artifacts Loaded.")
+                        except: pass
+
                     log.info(f"✅ {modality.upper()} Neural Path Established.")
                     return True
                 except Exception as e:
@@ -78,22 +121,39 @@ class NeuralPredictor:
             return "Erratic Alert" if b.jitter > 35 else "Nominal"
 
         try:
-            m = self.models["behavior"]
+            m_data = self.models["behavior"]["core"]
+            # Check if it's a scikit-learn pipeline/model or our custom dictionary
+            if isinstance(m_data, dict):
+                model = m_data["model"]
+                scaler = m_data.get("scaler")
+            else:
+                model = m_data
+                scaler = None
             
-            # [V15.6] Neural Alignment: The behavior MLP expects (None, 14)
-            # We map our 6 live sensors and pad the remaining 8 for synergy coherence.
-            features = [
-                b.mouse_speed, b.jitter, b.click_count,
-                getattr(b, 'wpm', 0), getattr(b, 'backspaces', 0), getattr(b, 'window_switches', 0),
-                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 # Neural Padding
-            ]
+            # Extract features (match extract_features from pipeline)
+            # Simplification: Use provided metrics as feature vector
+            features = {
+                'mouse_speed': b.mouse_speed,
+                'jitter': b.jitter,
+                'click_count': b.click_count,
+                'wpm': getattr(b, 'wpm', 0),
+                'backspaces': getattr(b, 'backspaces', 0),
+                'window_switches': getattr(b, 'window_switches', 0)
+            }
+            # Pad with zeros to match the training feature count (which was ~14)
+            # Re-read training feature list if possible, or use the saved list
+            f_names = m_data.get("features", [])
+            f_vector = []
+            for name in f_names:
+                f_vector.append(features.get(name, 0.0))
             
-            p = m.predict(np.array([features], dtype=np.float32), verbose=0)[0]
-            # Handle both sigmoid (scalar) and softmax (categorical) outputs
-            res = p[0] if p.size == 1 else p[np.argmax(p)]
+            X = np.array([f_vector])
+            X_scaled = scaler.transform(X)
             
-            if res > 0.7: return "Highly Anomalous"
-            if res > 0.4: return "Stressed"
+            p = model.predict(X_scaled)[0]
+            
+            if p == 1: return "Highly Anomalous" # Binary classification match
+            if b.jitter > 25: return "Stressed"
             return "Nominal"
         except Exception as e:
             log.warning(f"Behavior prediction fallback: {e}")
@@ -109,7 +169,7 @@ class NeuralPredictor:
             # High-Fidelity Image Processing (Aligned with Vision-Lite trainer)
             img = cv2.resize(img, (size, size), interpolation=cv2.INTER_CUBIC)
             
-            # [Sync] Normalization is now a layer in the model (tf.keras.layers.Rescaling)
+            # Normalization is now a layer in the model (tf.keras.layers.Rescaling)
             # We only cast to float32 here.
             img = img.astype('float32') # Removed / 255.0
             return np.expand_dims(img, axis=0)
@@ -117,11 +177,22 @@ class NeuralPredictor:
             log.debug(f"Frame decode error: {e}")
             return None
 
+    def _predict_core(self, modality: str, img: np.ndarray):
+        m = self.models.get(modality)
+        if not m: return None
+        if m["type"] == "TFLITE":
+            interp = m["core"]
+            interp.set_tensor(m["input"][0]['index'], img)
+            interp.invoke()
+            return interp.get_tensor(m["output"][0]['index'])
+        else:
+            return m["core"].predict(img, verbose=0)
+
     def predict_face_emotion(self, frame) -> dict:
         if not self.load_model("face"): return {"emotion":"Neutral", "confidence":0.0}
         img = self._decode_frame(frame, 128) # Signal alignment
         if img is None: return {"emotion":"Neutral", "confidence":0.0}
-        p = self.models["face"].predict(img, verbose=0)[0]
+        p = self._predict_core("face", img)[0]
         i = np.argmax(p)
         return {"emotion": self.EMOTION_CLASSES[i], "confidence": float(p[i])}
 
@@ -129,7 +200,8 @@ class NeuralPredictor:
         if not self.load_model("eye"): return {"gaze":"Center", "confidence":0.0}
         img = self._decode_frame(frame, 128) # Signal alignment
         if img is None: return {"gaze":"Center", "confidence":0.0}
-        p = self.models["eye"].predict(img, verbose=0)[0]
+        res = self._predict_core("eye", img)
+        p = res[0]
         i = np.argmax(p)
         return {"gaze": ["Center", "Left", "Right"][i], "confidence": float(p[i])}
 
@@ -137,7 +209,8 @@ class NeuralPredictor:
         if not self.load_model("face_orl"): return {"subject":"Unknown", "confidence":0.0}
         img = self._decode_frame(frame, 128) # Signal alignment
         if img is None: return {"subject":"Unknown", "confidence":0.0}
-        p = self.models["face_orl"].predict(img, verbose=0)[0]
+        res = self._predict_core("face_orl", img)
+        p = res[0]
         return {"subject": f"Subject_{np.argmax(p)+1:02d}", "confidence": float(np.max(p))}
     async def _run_model_async(self, modality: str, img):
         """Internal helper to run model in a thread pool."""
@@ -148,19 +221,48 @@ class NeuralPredictor:
             log.warning(f"Async inference error [{modality}]: {e}")
             return None
 
+    def predict_voice_emotion(self, features: np.ndarray) -> dict:
+        """Neural Voice Prediction (Optimal BiLSTM)."""
+        if not self.load_model("voice_cloud"): 
+            return {"emotion": "Neutral", "confidence": 0.0}
+        
+        try:
+            # Expected shape: (130, 120) for BiLSTM
+            if features.shape != (130, 120):
+                log.warning(f"Voice feature shape mismatch: {features.shape}. Expected (130, 120)")
+                # Minimal Padding/Truncation check
+                if features.size == 130 * 120:
+                    features = features.reshape(130, 120)
+                else:
+                    return {"emotion": "Neutral", "confidence": 0.0}
+
+            # Normalization
+            if "voice" in self.mean_std:
+                mean, std = self.mean_std["voice"]
+                features = (features - mean) / std
+
+            feat_batch = np.expand_dims(features, axis=0) # (1, 130, 120)
+            res = self._predict_core("voice_cloud", feat_batch)
+            p = res[0]
+            idx = np.argmax(p)
+            return {"emotion": self.EMOTION_CLASSES[idx] if idx < len(self.EMOTION_CLASSES) else "Neutral", "confidence": float(p[idx])}
+        except Exception as e:
+            log.warning(f"Voice prediction error: {e}")
+            return {"emotion": "Neutral", "confidence": 0.0}
+
     def _decode_once(self, frame_b64: str, size: int = 128):
         """Unified decoding to prevent redundant processing."""
         return self._decode_frame(frame_b64, size)
 
     async def predict_ensemble(self, frame_b64: str) -> dict:
         """
-        [SOTA] Parallel Ensemble Inference.
+        Parallel Ensemble Inference.
         Decodes once, runs all models concurrently.
         """
         img = self._decode_once(frame_b64, 128)
         if img is None: return {"emotion":"Neutral", "confidence":0.0, "votes": {}}
 
-        # [LOGIC] Identifier separation
+        # Identifier separation
         # Only 'face_alt' and 'emotion_master' have FER features.
         modalities = ["face_alt", "emotion_master"]
         
@@ -201,7 +303,7 @@ class NeuralPredictor:
             raw = cv2.imdecode(np.frombuffer(img_bytes, np.uint8), cv2.IMREAD_COLOR)
             if raw is None: return {}
 
-            # [Sync] Reverting to 128x128 to match baseline.
+            # Reverting to 128x128 to match baseline.
             r128 = cv2.resize(raw, (128, 128), interpolation=cv2.INTER_CUBIC).astype('float32')
             
             return {
@@ -283,24 +385,39 @@ class NeuralPredictor:
         return fused
 
     async def predict_ensemble_optimized(self, t128) -> dict:
-        """Optimized ensemble using pre-decoded tensor."""
-        # [LOGIC] Identifier separation
+        """Optimized ensemble using correctly scaled inputs for each member."""
+        # Identifier separation
         modalities = ["face_alt", "emotion_master"]
-        tasks = [self._run_model_async_direct(m, t128) for m in modalities]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        rs = []
+        
+        results = []
         votes = {}
-        for i, res in enumerate(results):
-            if res is not None and not isinstance(res, Exception):
-                p = res[0]
-                probs = p[:7]
-                rs.append(probs)
-                votes[modalities[i]] = self.EMOTION_CLASSES[np.argmax(probs)]
         
-        if not rs: return {"emotion": "Neutral", "confidence": 0.0}
+        # ── Member 1: face_alt (128x128x3) ──
+        res_alt = await self._run_model_async_direct("face_alt", t128)
+        if res_alt is not None:
+            p = res_alt[0][:7]
+            results.append(p)
+            votes["face_alt"] = self.EMOTION_CLASSES[np.argmax(p)]
+
+        # ── Member 2: emotion_master (32x32x1 Gray) ──
+        if self.load_model("emotion_master"):
+            try:
+                # Convert 128x128x3 to 32x32x1
+                img32 = cv2.resize(t128[0], (32, 32), interpolation=cv2.INTER_AREA)
+                gray32 = cv2.cvtColor(img32.astype(np.uint8), cv2.COLOR_RGB2GRAY)
+                gray32 = np.expand_dims(gray32, axis=(0, -1)).astype('float32') # (1, 32, 32, 1)
+                
+                res_master = await asyncio.to_thread(self._predict_core, "emotion_master", gray32)
+                if res_master is not None:
+                    p = res_master[0][:7]
+                    results.append(p)
+                    votes["emotion_master"] = self.EMOTION_CLASSES[np.argmax(p)]
+            except Exception as e:
+                log.warning(f"Emotion Master Ensemble error: {e}")
+
+        if not results: return {"emotion": "Neutral", "confidence": 0.0}
         
-        mean_p = np.mean(rs, axis=0)
+        mean_p = np.mean(results, axis=0)
         idx = int(np.argmax(mean_p))
         return {
             "emotion":    self.EMOTION_CLASSES[idx],
@@ -312,7 +429,7 @@ class NeuralPredictor:
         """Runs model directly on provided tensor in a thread pool."""
         if not self.load_model(modality): return None
         try:
-            return await asyncio.to_thread(self.models[modality].predict, tensor, verbose=0)
+            return await asyncio.to_thread(self._predict_core, modality, tensor)
         except Exception as e:
             log.error(f"Inference Fault [{modality}]: {e}")
             return None

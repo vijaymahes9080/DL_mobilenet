@@ -12,7 +12,7 @@ if sys.platform == "win32":
 
 # 🧬 ORIEN: PRE-TRAINED NEURAL SEED DOWNLOADER
 # ==========================================
-# Downloads the "Seeds" of SOTA Neural Models (MobileNetV2, ResNet50V2)
+# Downloads the "Seeds" of Optimized Neural Models (MobileNetV2, ResNet50V2)
 # used as high-performance foundations for ORIEN assistants.
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -42,14 +42,14 @@ def download_file(url, filename):
                 t.update(len(data))
                 f.write(data)
         t.close()
-        print(f"✅ Saved SOTA Seed to: {local_path}")
+        print(f"✅ Saved Optimized Seed to: {local_path}")
     except Exception as e:
         print(f"❌ Error downloading {filename}: {e}")
 
 if __name__ == "__main__":
     print("\n" + "="*50)
     print("  ORIEN NEURAL MASTER: SEED DOWNLOADER")
-    print("  Booting up SOTA brain foundations...")
+    print("  Booting up Optimized brain foundations...")
     print("" + "="*50 + "\n")
     
     for filename, url in SEEDS.items():

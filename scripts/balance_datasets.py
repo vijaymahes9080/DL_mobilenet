@@ -2,8 +2,8 @@ import os, shutil, random, sys
 from pathlib import Path
 from collections import Counter
 
-# ⚖️ ORIEN: Neural Data Synergy Balancer [V3.0-GLOBAL]
-# Resolves "HIGH BIAS" by performing GLOBAL balancing across all splits.
+# ⚖️ ORIEN: Neural Data Synergy Balancer
+# Resolves BIAS by performing balancing across all splits.
 # This ensures structural integrity regardless of how many subfolders exist.
 
 if sys.platform == "win32":
@@ -87,8 +87,8 @@ def balance_modality_global(name, folder):
 
 def run_balancing():
     print("\n" + "💎"*30)
-    print("  ORIEN: NEURAL DATA GLOBAL BALANCER (V3.0)")
-    print("  Goal: Eradicate Aggregate Bias & Stabilize Multi-Split Entropy")
+    print("  ORIEN: NEURAL DATA BALANCER")
+    print("  Goal: Eradicate Bias & Stabilize Entropy")
     print("💎"*30 + "\n")
     
     for name, folder in MODALITIES.items():

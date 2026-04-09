@@ -1,0 +1,29 @@
+{
+    "status": "SUCCESS",
+    "modalities": [
+        "vision",
+        "emotion",
+        "behavior",
+        "voice"
+    ],
+    "distribution": {
+        "train": {
+            "vision": 4025,
+            "emotion": 27473,
+            "behavior": 571,
+            "voice": 1020
+        },
+        "val": {
+            "vision": 862,
+            "emotion": 3293,
+            "behavior": 122,
+            "voice": 240
+        },
+        "test": {
+            "vision": 863,
+            "emotion": 3268,
+            "behavior": 123,
+            "voice": 185
+        }
+    }
+}

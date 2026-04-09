@@ -9,20 +9,20 @@ if sys.platform == "win32":
     except:
         pass
 
-# 🔍 ORIEN Neural Data Verifier & Scaffolder [SOTA ELITE]
+# 🔍 ORIEN Neural Data Verifier & Scaffolder [Optimized Advanced]
 ROOT = Path(__file__).parent.parent.absolute()
 DATASET_ROOT = ROOT / "dataset"
 
 # mod_name: folder_name
 MODALITIES = {
-    "face":           "face_core",
-    "gesture":        "gesture_hub",
+    "face":           "face/faces",
+    "gesture":        "gesture/classes",
     "voice":          "voice_cloud",
     "behavior":       "behavior_node",
     "eye":            "eye_monitor",
     "face_alt":       "face_alt",
     "face_orl":       "face_orl",
-    "emotion_master": "face_emotion"
+    "emotion_master": "face_emotion/train"
 }
 
 def create_scaffold(mod_name, path):
@@ -68,7 +68,7 @@ def check_all():
                     create_scaffold(mod_name, path)
             
             # Count items for all modalities with suitable extensions
-            exts = ('.jpg', '.jpeg', '.png', '.parquet', '.pgm', '.bmp')
+            exts = ('.jpg', '.jpeg', '.png', '.parquet', '.pgm', '.bmp', '.wav', '.mp3')
             # Aggregate counts by CLASS NAME across all splits (train/val/test)
             class_map = {}
             for root, dirs, files in os.walk(path):
