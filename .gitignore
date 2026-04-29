@@ -1,0 +1,6 @@
+*.keras
+*.h5
+*.tflite
+*.pt
+*.npy
+__pycache__/
