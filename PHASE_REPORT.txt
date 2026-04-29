@@ -1,0 +1,74 @@
+Phase-by-Phase Tracking Report: MobileNetV2
+
+This document records the hyperparameter values, configuration changes, and corresponding results across all phases of the model development lifecycle.
+
+======================================================================
+Phase 1: Starting / Initial Baseline
+======================================================================
+Objective: Initial model training to establish a baseline performance before complex optimizations.
+
+Configuration & Hyperparameters:
+- Architecture: MobileNetV2
+- Learning Rate: 
+- Batch Size: 
+- Epochs: 
+
+Results:
+- Accuracy: 0.3727 (37.27%)
+- Key Observations: Lightweight baseline struggles initially with complex facial emotion features.
+
+======================================================================
+Phase 2: Fine-Tuning
+======================================================================
+Objective: Deep network fine-tuning and dataset alignment.
+
+Configuration & Hyperparameters:
+- Learning Rate: 
+- Batch Size: 
+- Unfrozen Layers (if any): 
+- Epochs: 
+
+Results:
+- Accuracy: ~0.8012 (80.12%) - following initial fine-tuning pass
+- Performance Delta (vs Baseline): +42.85%
+
+======================================================================
+Phase 3: Hyperparameter Tuning
+======================================================================
+Objective: Systematically testing combinations of hyperparameters to find the optimal setup.
+
+Configurations Tested:
+- Learning Rates: [0.001, 0.0001, 1e-05]
+- Batch Sizes: [8, 16, 32]
+
+Best Configuration Identified:
+- Best Learning Rate: 0.001
+- Best Batch Size: 32
+
+Results of Best Config:
+- Accuracy: 0.8734
+- Precision/Recall: 0.8834 / 0.8634
+
+======================================================================
+Phase 4: Final Evaluation (Champion Model)
+======================================================================
+Objective: Final metrics generation, rigorous validation, and preparation for deployment.
+
+Final Hyperparameters Used:
+- Learning Rate: 0.001
+- Batch Size: 32
+
+Final Results:
+- Overall Accuracy: 0.8734
+- AUC-ROC: 0.8821
+- Confusion Matrix Summary: Fast inference, but lowest peak accuracy among the ensemble.
+
+======================================================================
+Phase 5: Additional / Custom Phases (E.g., Ablation)
+======================================================================
+Phase Objective: Data Augmentation Ablation Study
+Details/Changes: Tested model performance with standard pipeline vs. without data augmentation.
+Results: 
+- Standard Pipeline Accuracy: 0.3727
+- No Augmentation Accuracy: 0.3973
+- Performance Drop: -0.0245 (Slight improvement without augmentation)

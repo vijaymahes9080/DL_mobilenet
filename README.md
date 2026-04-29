@@ -22,7 +22,7 @@
 ```mermaid
 graph TD
     A[Raw Data] --> B{Preprocessing}
-    B --> C[EfficientNet-B0 Backbone]
+    B --> C[MobileNetV2 Backbone]
     B --> D[Landmark Heatmaps]
     C --> E(Latent Fusion)
     D --> E
@@ -39,7 +39,7 @@ graph TD
 
 ### 🔬 Operational Roadmap
 1.  **Infrastructure**: Automated environment setup and Google Drive synchronization.
-2.  **Benchmarking**: Systematic comparison between B0, MobileNetV2, and ResNet50.
+2.  **Benchmarking**: Systematic scaling comparison between MobileNetV2, MobileNetV3, and Custom CNNs.
 3.  **Tuning**: Hyper-parameter optimization (LR, Batch, Dropout) via Grid/Random Search.
 4.  **Explainability**: Grad-CAM activations to ensure the model focuses on relevant facial features.
 5.  **Ablation**: Scientific component analysis to quantify modular contributions.

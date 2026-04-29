@@ -24,7 +24,7 @@ Open the notebooks in Colab in the following order:
 | 1 | `01_drive_setup.ipynb` | Environment init & folder verification. |
 | 2 | `02_data_preprocessing.ipynb` | Data cleaning & class balancing. |
 | 3 | `03_dataset_pipeline.ipynb` | High-speed `tf.data` configuration. |
-| 4 | `04_model_architectures_comparison.ipynb` | EfficientNet vs MobileNet vs ResNet benchmarking. |
+| 4 | `04_model_architectures_comparison.ipynb` | MobileNet Scaling (V1 vs V2 vs V3) benchmarking. |
 | 5 | `05_systematic_hyperparameter_tuning.ipynb` | Automated Grid Search (LR, BS, Dropout). |
 | 6 | `06_advanced_metrics_evaluation.ipynb` | 16+ Statistical Metrics (MCC, Kappa, etc.). |
 | 7 | `07_training_final_optimized_model.ipynb` | Final training of the "Champion Model". |
@@ -67,5 +67,5 @@ This script handles preprocessing, dataset building, and final training in one g
 ## ⚠️ Critical Research Warnings
 *   **GPU Usage**: Ensure **Runtime > Change runtime type > GPU** is selected for notebooks 04-09.
 *   **Sequential Dependencies**: Each notebook generates logs or models required by the next. **Do not skip notebooks.**
-*   **XAI Heatmaps**: If Grad-CAM heatmaps are blurry, try adjusting the `last_conv_layer_name` in Notebook 08 (e.g., `top_conv` for EfficientNet).
+*   **XAI Heatmaps**: If Grad-CAM heatmaps are blurry, try adjusting the `last_conv_layer_name` in Notebook 08 (e.g., `out_relu` for MobileNetV2).
 

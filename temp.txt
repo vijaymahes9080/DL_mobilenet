@@ -1,0 +1,6 @@
+Refine prepare function in train_local.py (Reduced augmentation)
+ Implement Balanced Class Re-sampling
+ Upgrade Model Head Architecture (Dense 512 -> 256)
+ Add Label Smoothing and Cosine Decay
+ Execute Retraining Pipeline
+ Verify improved metrics in research_report.csv

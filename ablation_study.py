@@ -44,14 +44,14 @@ def run_ablation_scenario(name, disable_aug=False):
         ])
         train_ds = train_ds.map(lambda x, y: (aug(x, training=True), y))
     
-    # Model
-    base = applications.EfficientNetB0(include_top=False, weights='imagenet', input_shape=(224, 224, 3))
-    base.trainable = False
+    # Model (MobileNetV2 with Preprocessing)
     model = models.Sequential([
-        base,
+        layers.Rescaling(1./127.5, offset=-1, input_shape=(224, 224, 3)),
+        applications.MobileNetV2(include_top=False, weights='imagenet'),
         layers.GlobalAveragePooling2D(),
         layers.Dense(num_classes, activation='softmax')
     ])
+    model.layers[1].trainable = False
     
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
     

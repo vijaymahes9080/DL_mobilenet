@@ -9,7 +9,7 @@ We have successfully transitioned from exploratory research to the **Mastery Sta
 #### 🏗️ Architectural Core
 | Component | Specification | Rationale |
 | :--- | :--- | :--- |
-| **Backbone** | EfficientNet-B0 | Optimal parameter-to-performance ratio for edge devices. |
+| **Backbone** | MobileNetV2 | High-efficiency backbone optimized for low-latency edge execution. |
 | **Resolution** | 224x224px (RGB) | Native ImageNet dimensions for maximum feature extraction. |
 | **Bottleneck** | Dense(256) + L2(0.01) | High-capacity latent space with strict regularization. |
 | **Optimization** | Dual-Phase Fine-Tuning | Prevents catastrophic forgetting during head adaptation. |
@@ -33,13 +33,13 @@ We have successfully transitioned from exploratory research to the **Mastery Sta
 We are integrating **468 MediaPipe landmarks** directly into the CNN's latent space. By providing "hard geometric facts" (like eye-to-brow ratios), the model becomes immune to lighting variations that confuse pixel-based features.
 
 #### 🏗️ Stage B: Neural Ensemble Stacking
-A hybrid approach where **EfficientNet**'s spatial awareness is combined with a **ConvNeXt-Tiny**'s robust feature mapping. A meta-classifier stacks these predictions to resolve complex edge cases like "Micro-expressions."
+A hybrid approach where **MobileNetV2**'s spatial awareness is combined with a **ConvNeXt-Tiny**'s robust feature mapping. A meta-classifier stacks these predictions to resolve complex edge cases like "Micro-expressions."
 
 #### ⚡ Stage C: Quantization Aware Training (QAT)
 Simulating 8-bit precision during training to ensure no accuracy drop when deploying to Int8-only mobile hardware.
 
 #### 🧠 Stage D: Knowledge Distillation
-The current "Mastery Model" will serve as a **Teacher** to train a ultra-lightweight **MobileNetV3-Small** "Student," achieving high-fidelity performance on wearable devices.
+The current "Mastery Model" will serve as a **Teacher** to train an ultra-lightweight **MobileNetV3-Small** "Student," achieving high-fidelity performance on wearable devices.
 
 ---
 

@@ -9,6 +9,7 @@ REPORT_PATH = os.path.join(OUTPUT_PATH, 'FINAL_RESEARCH_REPORT.md')
 
 def generate():
     print("--- Generating Consolidated Research Report ---")
+    os.makedirs(OUTPUT_PATH, exist_ok=True)
     
     # Load metrics
     research_report_path = os.path.join(OUTPUT_PATH, 'research_report.csv')
@@ -28,7 +29,7 @@ def generate():
 **Generated on:** {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
 ## 1. Executive Summary
-This report summarizes the high-fidelity training results for the Neural Synergy emotion classification model. The project utilized an EfficientNetB0 backbone with systematic fine-tuning to achieve production-grade performance.
+This report summarizes the high-fidelity training results for the Neural Synergy emotion classification model. The project utilized a MobileNetV2 backbone with systematic fine-tuning to achieve production-grade performance.
 
 ## 2. Statistical Performance Metrics
 Below are the final metrics across the 7 emotion classes (Angry, Disgust, Fear, Happy, Neutral, Sad, Surprise).
