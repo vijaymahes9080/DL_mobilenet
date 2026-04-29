@@ -6,7 +6,7 @@ def generate_report():
         print("Error: hyper_tuning_results.csv not found.")
         return
 
-    df = pd.read_csv('hyper_tuning_results.csv')
+    df = pd.read_csv('hyper_tuning_results.csv', on_bad_lines='skip')
     best_row = df.loc[df['accuracy'].idxmax()]
     
     report_content = f"""# Neural Synergy - Strategic Mastery Final Report
